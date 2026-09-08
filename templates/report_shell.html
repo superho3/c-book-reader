@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or (module_name ~ ' Report') }}</title>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --panel: #ffffff;
+      --panel-soft: #fbfcfe;
+      --border: #dbe3ec;
+      --ink: #1f2937;
+      --muted: #64748b;
+      --accent: #1d5f91;
+      --accent-dark: #153a5b;
+      --accent-soft: #e8f1f8;
+      --warn-bg: #fff8ea;
+      --warn-border: #f2cc8f;
+      --good-bg: #f2fbf5;
+      --good-border: #b7e4c7;
+      --unknown-bg: #f8fafc;
+      --unknown-border: #d0d7de;
+      --chip-bg: #e8eef5;
+      --chip-ink: #20405d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, #ffffff 0%, #f7fbff 28%, transparent 52%),
+        linear-gradient(180deg, #eef4fa 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: Segoe UI, Arial, sans-serif;
+    }
+
+    .page {
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar-card,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+    }
+
+    .sidebar-card {
+      position: sticky;
+      top: 24px;
+      padding: 16px 14px;
+    }
+
+    .sidebar-title {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+    }
+
+    .sidebar-subtitle {
+      margin: 0 0 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .sidebar-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-bottom: 8px;
+    }
+
+    .report-content {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      font-family: Segoe UI, Arial, sans-serif;
+      max-width: 980px;
+    }
+
+    .report-container {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-soft) 100%);
+    }
+
+    .diagnostic-summary-card {
+      margin: 0 0 16px;
+      border: 1px solid #d7e4f0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #f9fbfe 0%, #f2f7fb 100%);
+      padding: 14px 16px;
+    }
+
+    .diagnostic-summary-title {
+      margin: 0 0 6px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+    }
+
+    .diagnostic-summary-copy {
+      margin: 0 0 12px;
+      font-size: 0.83rem;
+      color: var(--muted);
+    }
+
+    .diagnostic-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+
+    .diagnostic-summary-item {
+      border: 1px solid #d9e4ee;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 12px;
+    }
+
+    .diagnostic-summary-code {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+    }
+
+    .diagnostic-summary-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .diagnostic-summary-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      text-decoration: none;
+      font-size: 0.77rem;
+      font-weight: 700;
+    }
+
+    .diagnostic-summary-link:hover {
+      background: #dcecf9;
+    }
+
+    .report-container > p:first-child {
+      margin-top: 0;
+    }
+
+    .classification-banner {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border: 1px solid #c8daeb;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #f7fbff 0%, var(--accent-soft) 100%);
+      color: var(--accent-dark);
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .report-section {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+      scroll-margin-top: 24px;
+    }
+
+    .section-title,
+    .subsection-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--accent-dark);
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+    }
+
+    .subsection-title {
+      font-size: 0.92rem;
+    }
+
+    .report-section h3,
+    .report-section h4 {
+      color: var(--accent-dark);
+      font-weight: 700;
+      line-height: 1.35;
+      margin: 14px 0 8px;
+      scroll-margin-top: 24px;
+    }
+
+    .report-section h2 {
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e4ebf3;
+      color: var(--accent-dark);
+      font-size: 1.08rem;
+    }
+
+    .report-section h3 {
+      font-size: 0.98rem;
+      margin-top: 18px;
+    }
+
+    .report-section h4 {
+      font-size: 0.9rem;
+    }
+
+    .report-section p {
+      margin: 0 0 0.9rem;
+    }
+
+    .report-section p:last-child {
+      margin-bottom: 0;
+    }
+
+    .report-section ul {
+      margin: 0 0 0.95rem;
+      padding-left: 1.2rem;
+    }
+
+    .report-section li {
+      margin-bottom: 10px;
+    }
+
+    .report-section li:last-child {
+      margin-bottom: 0;
+    }
+
+    .report-list {
+      margin: 0 0 0.95rem;
+      padding-left: 1.1rem;
+    }
+
+    .report-list > li {
+      margin-bottom: 12px;
+    }
+
+    .report-list > li:last-child {
+      margin-bottom: 0;
+    }
+
+    .expr,
+    .meaning,
+    .evidence,
+    .muted,
+    .kv {
+      margin: 6px 0;
+    }
+
+    .expr {
+      background: #f4f7fb;
+      border-left: 4px solid var(--accent);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: block;
+      width: auto;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      white-space: normal;
+      overflow: visible;
+      overflow-wrap: anywhere;
+    }
+
+    .expr code {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      padding: 0;
+      color: #0f172a;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    code {
+      background: #f3f6fa;
+      border-radius: 4px;
+      padding: 0.08rem 0.3rem;
+      color: #0f172a;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+    }
+
+    .warn {
+      border-color: var(--warn-border);
+      background: var(--warn-bg);
+    }
+
+    .good {
+      border-color: var(--good-border);
+      background: var(--good-bg);
+    }
+
+    .unknown {
+      border-color: var(--unknown-border);
+      background: var(--unknown-bg);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .meaning {
+      color: #334155;
+      font-size: 0.84rem;
+    }
+
+    .unknown:not(.report-section) {
+      margin: 6px 0;
+      padding: 6px 10px;
+      border-left: 4px solid var(--unknown-border);
+      border-radius: 6px;
+      background: var(--unknown-bg);
+      color: var(--muted);
+      font-size: 0.82rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      box-sizing: border-box;
+    }
+
+    .evidence {
+      color: #0f172a;
+      font-size: 0.82rem;
+    }
+
+    .kv {
+      color: #334155;
+      font-size: 0.84rem;
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--chip-bg);
+      color: var(--chip-ink);
+      font-size: 0.78rem;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+
+    .toc {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .toc-link {
+      display: block;
+      padding: 7px 9px;
+      border-radius: 8px;
+      color: #35506a;
+      text-decoration: none;
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .toc-link:hover {
+      background: #f2f7fb;
+      color: var(--accent-dark);
+    }
+
+    .toc-link.level-3 {
+      margin-left: 12px;
+      font-size: 0.8rem;
+      color: #55687d;
+    }
+
+    .toc-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    details {
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: var(--unknown-bg);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--chip-ink);
+      list-style: none;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-card {
+        position: static;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .report-section {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="layout">
+      <aside class="sidebar-card">
+        <h1 class="sidebar-title">{{ module_name }} Report</h1>
+        <p class="sidebar-subtitle">Long reports are easier to scan from the section index and the classification banner.</p>
+        <div class="sidebar-meta">
+          <span class="chip">Module: {{ module_name }}</span>
+          <span class="chip">Engine: {{ engine_name }}</span>
+        </div>
+        <nav id="toc" class="toc">
+          <p class="toc-empty">Section index will appear here.</p>
+        </nav>
+      </aside>
+      <div class="card">
+        <div class="meta">Module: {{ module_name }}</div>
+        <div class="meta">Generated: {{ generated_at }} | Engine: {{ engine_name }}</div>
+        <div class="report-content">
+          <div class="report-container">{{ report_html|safe }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const container = document.querySelector('.report-container');
+      const toc = document.getElementById('toc');
+      if (!container || !toc) return;
+
+      const directChildren = Array.from(container.children || []);
+      const firstClassification = directChildren.find((node) => node.tagName === 'P' && node.textContent.trim().startsWith('Classification:'));
+      if (firstClassification) {
+        firstClassification.classList.add('classification-banner');
+      }
+
+      const headings = Array.from(container.querySelectorAll('section h2, section h3'));
+      if (!headings.length) {
+        toc.innerHTML = '<p class="toc-empty">No section headings found.</p>';
+        return;
+      }
+
+      toc.innerHTML = '';
+      headings.forEach((heading, index) => {
+        if (!heading.id) {
+          const slug = heading.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          heading.id = slug || ('section-' + (index + 1));
+        }
+        const link = document.createElement('a');
+        link.href = '#' + heading.id;
+        link.className = 'toc-link level-' + heading.tagName.slice(1);
+        link.textContent = heading.textContent.trim();
+        toc.appendChild(link);
+      });
+
+      const diagnosticGroups = new Map();
+      Array.from(container.querySelectorAll('section h3')).forEach((heading) => {
+        const text = heading.textContent.trim();
+        const match = text.match(/^([PBCU][0-9][0-9A-F]{3}(?:-\d{2})?)/i);
+        if (!match) return;
+        const code = match[1].toUpperCase();
+        if (!diagnosticGroups.has(code)) {
+          diagnosticGroups.set(code, []);
+        }
+        diagnosticGroups.get(code).push(heading);
+      });
+
+      if (diagnosticGroups.size) {
+        const summary = document.createElement('section');
+        summary.className = 'diagnostic-summary-card';
+
+        const title = document.createElement('h2');
+        title.className = 'diagnostic-summary-title';
+        title.textContent = diagnosticGroups.size === 1 ? 'Selected DTC focus' : 'Diagnostic focus';
+        summary.appendChild(title);
+
+        const copy = document.createElement('p');
+        copy.className = 'diagnostic-summary-copy';
+        copy.textContent = 'Jump directly to each DTC status, enable, fail, pass, and completion block.';
+        summary.appendChild(copy);
+
+        const grid = document.createElement('div');
+        grid.className = 'diagnostic-summary-grid';
+
+        diagnosticGroups.forEach((groupHeadings, code) => {
+          const item = document.createElement('div');
+          item.className = 'diagnostic-summary-item';
+
+          const heading = document.createElement('h3');
+          heading.className = 'diagnostic-summary-code';
+          heading.textContent = code;
+          item.appendChild(heading);
+
+          const links = document.createElement('div');
+          links.className = 'diagnostic-summary-links';
+          groupHeadings.forEach((groupHeading) => {
+            const link = document.createElement('a');
+            link.href = '#' + groupHeading.id;
+            link.className = 'diagnostic-summary-link';
+            link.textContent = groupHeading.textContent.replace(code, '').trim() || 'Overview';
+            links.appendChild(link);
+          });
+          item.appendChild(links);
+          grid.appendChild(item);
+        });
+
+        summary.appendChild(grid);
+        const insertionTarget = firstClassification && firstClassification.nextSibling ? firstClassification.nextSibling : container.firstChild;
+        container.insertBefore(summary, insertionTarget);
+      }
+    }());
+  </script>
+</body>
+</html>

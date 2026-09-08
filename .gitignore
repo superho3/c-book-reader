@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.env
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project-specific (SENSITIVE - DO NOT COMMIT!)
+config.json
+.fqdn
+*.tmp
+
+# Generated outputs (optional - keep if you want to track)
+C-BOOK_tmp/
+# DataAnalysisExpert/
+
+# Calibration/data files - not to be stored in this repo
+C-BOOK/
+A2L_anlaysis/
+OBD_Design_Transmittals_PCM/
+tmp_generated_raw_source_*.txt
+tmp_generated_report_*.html
+tmp_generation_debug_*.json
+tmp_last_analyze_debug.json
+tmp_check_visibility_cleanup.py
+tmp_noxin_*
+tmp_rerun_*
+tmp_run_*
+debug_files.txt
+DTC_list.txt
+
+# Windows
+Thumbs.db
+.windows-build-tools/

@@ -1,0 +1,3310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C-BOOK ECU Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root { --navy: #1a3a5c; }
+    body { background: #f0f2f5; font-size: 0.93rem; }
+    .navbar  { background: var(--navy) !important; }
+    .card    { border: none; box-shadow: 0 2px 8px rgba(0,0,0,.09); border-radius: 10px; }
+    .card-header { background: #fff; border-bottom: 2px solid #f0f2f5; border-radius: 10px 10px 0 0 !important; }
+    .quick-start-wrap {
+      position: fixed;
+      top: 72px;
+      right: max(12px, calc((100vw - 1280px) / 2 + 12px));
+      z-index: 1020;
+      width: min(302px, calc(100vw - 24px));
+      max-height: calc(100vh - 84px);
+      overflow-y: auto;
+    }
+    .quick-start {
+      background: linear-gradient(135deg, #fff 0%, #eef4ff 100%);
+      border: 1px solid #d8e5ff;
+    }
+    .quick-start ol {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+    .quick-start li + li {
+      margin-top: 0.25rem;
+    }
+    .quick-start-note {
+      margin-top: 0.9rem;
+      padding: 0.85rem 0.95rem;
+      border-radius: 9px;
+      background: rgba(255,255,255,.88);
+      border: 1px solid #d8e5ff;
+      color: #4f5f72;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+    .quick-start-col {
+      min-height: 0;
+    }
+    @media (max-width: 1199.98px) {
+      .quick-start-col {
+        min-height: 0;
+      }
+      .quick-start-wrap {
+        position: static;
+        top: auto;
+        left: auto;
+        right: auto;
+        width: auto;
+        max-height: none;
+        overflow: visible;
+      }
+    }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--navy); color: #fff; font-weight: 700; font-size: .9rem; flex-shrink: 0;
+    }
+
+    /* ── File list ── */
+    .folder-label { color: #888; font-size: .78rem; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: .5px; padding: 6px 0 2px; }
+    .file-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 12px; border: 1px solid #e0e0e0; border-radius: 6px;
+      margin-bottom: 4px; cursor: pointer; transition: all .15s;
+    }
+    .file-row:hover  { background: #f4f7ff; border-color: #aac4ff; }
+    .file-row.active { background: #e8f0ff; border-color: #0d6efd; }
+
+    /* ── Module badges ── */
+    .mod-badge {
+      display: inline-block; padding: 4px 10px; border-radius: 4px; margin: 3px;
+      cursor: pointer; background: #6c757d; color: #fff;
+      font-size: .81rem; font-weight: 500; transition: all .15s; user-select: none;
+    }
+    .mod-badge:hover  { background: #495057; transform: translateY(-1px); }
+    .mod-badge.active { background: #0d6efd; }
+
+    /* ── Analysis output (rich HTML report style) ── */
+    #analysis-out {
+      background: #fff;
+      color: #1f2937;
+      border: 1px solid #dee2e6;
+      padding: 0;
+      border-radius: 8px;
+      min-height: 180px; max-height: 560px; overflow-y: auto;
+      font-size: .9rem;
+      line-height: 1.65;
+    }
+
+    #analysis-out .report-content {
+      font-size: .9rem;
+      color: #1f2937;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 16px;
+    }
+
+    #scroll-latest-btn.hidden {
+      display: none !important;
+    }
+
+    #analysis-out .report-content h1,
+    #analysis-out .report-content h2,
+    #analysis-out .report-content h3,
+    #analysis-out .report-content h4 {
+      color: var(--navy);
+      margin-top: 1rem;
+      margin-bottom: .5rem;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    #analysis-out .report-container {
+      padding: 16px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    }
+
+    #analysis-out .report-section {
+      border: 1px solid #dbe3ec;
+      border-radius: 10px;
+      background: #fff;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    #analysis-out .section-title,
+    #analysis-out .subsection-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: #153a5b;
+      margin-bottom: 8px;
+    }
+
+    #analysis-out .section-title {
+      font-size: 1rem;
+    }
+
+    #analysis-out .subsection-title {
+      font-size: .92rem;
+    }
+
+    #analysis-out .report-section h3,
+    #analysis-out .report-section h4 {
+      color: #153a5b;
+      font-weight: 700;
+      line-height: 1.35;
+      margin: 14px 0 8px;
+    }
+
+    #analysis-out .report-section h3 {
+      font-size: .98rem;
+    }
+
+    #analysis-out .report-section h4 {
+      font-size: .9rem;
+    }
+
+    #analysis-out .report-section ul {
+      margin: 0 0 .95rem;
+      padding-left: 1.1rem;
+    }
+
+    #analysis-out .report-section li {
+      margin-bottom: 12px;
+    }
+
+    #analysis-out .report-section li:last-child {
+      margin-bottom: 0;
+    }
+
+    #analysis-out .report-list {
+      margin: 0 0 .95rem;
+      padding-left: 1.1rem;
+    }
+
+    #analysis-out .report-list > li {
+      margin-bottom: 12px;
+    }
+
+    #analysis-out .report-list > li:last-child {
+      margin-bottom: 0;
+    }
+
+    #analysis-out .expr,
+    #analysis-out .meaning,
+    #analysis-out .evidence,
+    #analysis-out .muted,
+    #analysis-out .kv {
+      margin: 6px 0;
+    }
+
+    #analysis-out .expr {
+      background: #f4f7fb;
+      border-left: 4px solid #1d5f91;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: block;
+      width: auto;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      white-space: normal;
+      overflow: visible;
+      overflow-wrap: anywhere;
+    }
+
+    #analysis-out .expr code,
+    #analysis-out .kv code,
+    #analysis-out .chip {
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+
+    #analysis-out .expr code {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      padding: 0;
+      color: #0f172a;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    #analysis-out .meaning {
+      color: #334155;
+      font-size: .84rem;
+    }
+
+    #analysis-out .unknown:not(.report-section) {
+      margin: 6px 0;
+      padding: 6px 10px;
+      border-left: 4px solid #d0d7de;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #64748b;
+      font-size: .82rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      box-sizing: border-box;
+    }
+
+    #analysis-out .evidence {
+      color: #0f172a;
+      font-size: .82rem;
+    }
+
+    .cal-value-cell {
+      display: inline-block;
+      max-width: 420px;
+      max-height: 110px;
+      overflow: auto;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .78rem;
+      vertical-align: middle;
+    }
+
+    .cal-table-wrap {
+      max-width: 480px;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    .cal-mini-table {
+      font-size: .72rem;
+      white-space: nowrap;
+      margin: 0;
+    }
+
+    .cal-mini-table th,
+    .cal-mini-table td {
+      padding: 2px 6px;
+      text-align: right;
+      border: 1px solid #e2e8f0;
+    }
+
+    .cal-mini-table th {
+      background: #f1f5f9;
+      text-align: left;
+      position: sticky;
+      left: 0;
+    }
+
+    .cal-mini-table th:first-child {
+      z-index: 1;
+    }
+
+    #analysis-out .kv {
+      color: #334155;
+      font-size: .84rem;
+    }
+
+    #analysis-out .warn {
+      border-color: #f2cc8f;
+      background: #fff8ea;
+    }
+
+    #analysis-out .good {
+      border-color: #b7e4c7;
+      background: #f2fbf5;
+    }
+
+    #analysis-out .unknown {
+      border-color: #d0d7de;
+      background: #f8fafc;
+    }
+
+    #analysis-out .muted {
+      color: #64748b;
+    }
+
+    #analysis-out .chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #e8eef5;
+      color: #20405d;
+      font-size: .78rem;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+
+    #analysis-out details {
+      margin-top: 8px;
+    }
+
+    #analysis-out summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: #20405d;
+      list-style: none;
+    }
+
+    #analysis-out details {
+      border: 1px solid #dbe3ec;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #f8fafc;
+    }
+
+    #analysis-out .report-content p {
+      margin-bottom: .75rem;
+    }
+
+    #analysis-out .report-content ul,
+    #analysis-out .report-content ol {
+      margin-bottom: .9rem;
+      padding-left: 1.25rem;
+    }
+
+    #analysis-out .report-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: .9rem 0;
+      font-size: .88rem;
+      background: #fff;
+    }
+
+    #analysis-out .report-content th,
+    #analysis-out .report-content td {
+      border: 1px solid #dee2e6;
+      padding: .45rem .55rem;
+      vertical-align: top;
+    }
+
+    #analysis-out .report-content th {
+      background: #f8f9fa;
+      font-weight: 700;
+    }
+
+    #analysis-out .report-content code {
+      background: #f1f3f5;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .84rem;
+    }
+
+    #analysis-out .report-content pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .84rem;
+      line-height: 1.55;
+    }
+
+    #analysis-out .report-content pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+
+    #analysis-out .report-content blockquote {
+      border-left: 4px solid #ced4da;
+      padding-left: .75rem;
+      color: #495057;
+      margin: .75rem 0;
+    }
+
+    /* ── Type-choice buttons ── */
+    .type-btn { min-width: 190px; text-align: left; }
+
+    .report-view-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px;
+      border: 1px solid #d7dee8;
+      border-radius: 999px;
+      background: #f8fafc;
+    }
+
+    .report-view-btn {
+      border: 0;
+      background: transparent;
+      color: #526273;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: .78rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .report-view-btn.active {
+      background: #1d5f91;
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+    }
+
+    .report-view-btn:disabled {
+      opacity: .55;
+      cursor: default;
+    }
+
+    #analysis-out.compare-mode {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .report-compare-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .report-compare-panel {
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .report-compare-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      background: linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%);
+    }
+
+    .report-compare-title {
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .01em;
+      color: #153a5b;
+    }
+
+    .report-compare-note {
+      color: #64748b;
+      font-size: .76rem;
+    }
+
+    .report-compare-body {
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .report-save-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .report-diff-indicators {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .report-diff-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .76rem;
+      font-weight: 600;
+      border: 1px solid #d7dee8;
+      background: #f8fafc;
+      color: #526273;
+    }
+
+    .report-diff-chip.same {
+      border-color: #b7e4c7;
+      background: #f2fbf5;
+      color: #25603a;
+    }
+
+    .report-diff-chip.changed {
+      border-color: #f2cc8f;
+      background: #fff8ea;
+      color: #8a4b08;
+    }
+
+    .report-diff-chip.meta {
+      border-color: #dbe3ec;
+      background: #ffffff;
+      color: #4b5563;
+    }
+
+    .report-source-wrap {
+      padding: 16px;
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+    }
+
+    .raw-source-pre {
+      margin: 0;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .path-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .8rem;
+      word-break: break-all;
+    }
+
+    .result-window {
+      max-height: 320px;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .mini-badge-btn {
+      border: 1px solid #6c757d;
+      background: #fff;
+      color: #495057;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: .75rem;
+      margin: 2px 4px 2px 0;
+      cursor: pointer;
+    }
+
+    .mini-badge-btn:hover {
+      background: #eef4ff;
+      border-color: #0d6efd;
+      color: #0d6efd;
+    }
+
+    .mini-badge-btn.mini-badge-main {
+      font-weight: 700;
+      border-width: 2px;
+    }
+
+    .dtc-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .dtc-status-card {
+      background: #fff;
+      border: 1px solid #d9e3f1;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .dtc-status-label {
+      color: #6b7280;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .dtc-status-value {
+      color: var(--navy);
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+
+    .dtc-status-note {
+      color: #6b7280;
+      font-size: .76rem;
+      margin-top: 2px;
+    }
+
+    .dtc-group-card {
+      background: #fff;
+      border: 1px solid #dfe6ef;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .dtc-group-head {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e7edf5;
+      background: #f8fbff;
+    }
+
+    .dtc-group-title {
+      font-weight: 700;
+      color: #213547;
+    }
+
+    .dtc-group-subtitle {
+      color: #6b7280;
+      font-size: .8rem;
+      margin-top: 2px;
+    }
+
+    .dtc-group-card.monitoring-on .dtc-group-head {
+      background: #eefaf2;
+    }
+
+    .dtc-group-card.monitoring-off .dtc-group-head {
+      background: #fff8e8;
+    }
+
+    .dtc-group-card.unused-group .dtc-group-head {
+      background: #f6f7f9;
+    }
+
+    .dtc-sw-filter-box {
+      border: 1px solid #dfe6ef;
+      border-radius: 8px;
+      background: #fff;
+      padding: 6px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      max-width: 560px;
+    }
+
+    .dtc-sw-filter-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: .78rem;
+      color: #334155;
+      margin: 0;
+    }
+
+    .dtc-sw-filter-item input {
+      margin: 0;
+    }
+
+    .dtc-empty {
+      padding: 12px;
+      color: #6b7280;
+      font-size: .84rem;
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #e7f1ff;
+      color: #0b5ed7;
+      font-size: .74rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ──────────────────────────────────────────────────────────── -->
+<nav class="navbar navbar-dark mb-3 px-3">
+  <span class="navbar-brand mb-0 h5">🔬 C-BOOK ECU Code Analyzer</span>
+</nav>
+
+<div class="container" style="max-width:1280px; padding-bottom:40px">
+  <div class="row g-3 align-items-start">
+    <div class="col-xl-9 order-2 order-xl-1">
+
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="step-num" style="background:#6f42c1">0</span>
+      <strong>Ford LLM Settings</strong>
+    </div>
+    <div class="card-body py-3">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="ford-base-url" class="form-label small fw-semibold">Base URL</label>
+          <input type="text" class="form-control form-control-sm" id="ford-base-url" value="https://api.pivpn.core.ford.com/fordllmapi/api/v1">
+        </div>
+        <div class="col-md-6">
+          <label for="ford-model" class="form-label small fw-semibold">Model</label>
+          <select class="form-select form-select-sm" id="ford-model">
+            <option value="gpt-5-2025-08-07">gpt-5-2025-08-07</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="ford-client-id" class="form-label small fw-semibold">FordLLM Client ID</label>
+          <input type="text" class="form-control form-control-sm" id="ford-client-id" placeholder="API Catalog client ID">
+        </div>
+        <div class="col-md-6">
+          <label for="ford-client-secret" class="form-label small fw-semibold">FordLLM Client Secret</label>
+          <input type="password" class="form-control form-control-sm" id="ford-client-secret" placeholder="API Catalog client secret">
+        </div>
+        <div class="col-12">
+          <label for="ford-token" class="form-label small fw-semibold">Bearer Token (fallback)</label>
+          <textarea class="form-control form-control-sm" id="ford-token" rows="3" placeholder="Paste Ford LLM bearer token here"></textarea>
+          <div class="form-text">Preferred auth matches the FordLLM SDK: use the client ID and client secret from API Catalog. Bearer token is a manual fallback only.</div>
+        </div>
+        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+          <button class="btn btn-sm btn-primary" onclick="saveFordLlmSettings()">💾 Save Settings</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="testFordLlmSettings()">🧪 Test Connection</button>
+          <span class="small text-muted" id="ford-settings-status"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+      STEP 1 – Select C File
+       ════════════════════════════════════════════════════════════ -->
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="step-num">1</span>
+      <strong>Select C File</strong>
+      <button class="btn btn-sm btn-primary ms-auto" id="scan-btn" onclick="doScan()">
+        🔍 Scan C-BOOK Folder
+      </button>
+    </div>
+    <div class="card-body py-2" id="file-area">
+      <div class="text-muted text-center py-3">Click Scan to get started</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+      STEP 2 – Select Calibration Data File
+       ╠═══════════════════════════════════════════════════════════╠ -->
+  <div class="card mb-3 hidden" id="card-cal">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="step-num" style="background:#198754">2</span>
+      <strong>Select Cal Data File</strong>
+      <span class="text-muted small ms-2">(optional)</span>
+      <button class="btn btn-sm btn-success ms-auto me-2" id="scan-cal-btn" onclick="doScanCal()">
+        🔄 Refresh Same-Directory Files
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" id="skip-cal-btn" onclick="skipCal()">
+        ⏭ Skip
+      </button>
+    </div>
+    <div class="card-body py-2">
+      <div class="text-muted small mb-2" id="cal-selected-info">No file selected — or click ⏭ Skip to proceed without calibration data</div>
+      <div class="hidden small mb-2" id="cal-selected-path"></div>
+      <div id="cal-file-area">
+        <div class="text-muted text-center py-2">Select a C file first. Matching calibration text files in the same directory will be shown here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ╠═══════════════════════════════════════════════════════════╠
+      STEP 3 – Select Module
+       ╠═══════════════════════════════════════════════════════════╠ -->
+  <div class="card mb-3 hidden" id="card2">
+    <div class="card-header d-flex align-items-center gap-2 py-2 flex-wrap">
+      <span class="step-num">3</span>
+      <strong>Select Module</strong>
+      <span class="badge bg-secondary" id="mod-count">0</span>
+      <select class="form-select form-select-sm ms-2" id="dtc-mode-select" style="max-width:170px">
+        <option value="both">DTC Mode: Both</option>
+        <option value="non-uds" selected>DTC Mode: Non-UDS</option>
+        <option value="uds">DTC Mode: UDS</option>
+      </select>
+            <button class="btn btn-sm btn-outline-primary ms-auto me-2" id="btn-select-all"
+              onclick="processAllModules()" disabled>⚙️ Select All</button>
+            <button class="btn btn-sm btn-outline-warning me-2" id="btn-dtc"
+              onclick="extractAllDtcs()" disabled>🔍 Extract All DTCs</button>
+      <input type="text" class="form-control form-control-sm"
+             style="max-width:200px" id="mod-filter"
+             placeholder="🔍 Filter..." oninput="filterMods()">
+    </div>
+    <div class="card-body py-2">
+      <div class="text-muted small mb-2" id="feat-saved"></div>
+      <div class="hidden alert alert-secondary py-2 small mb-2" id="bulk-status"></div>
+      <div id="mod-area"></div>
+    </div>
+  </div>
+
+  <!-- DTC result shown after clicking Extract All DTCs -->
+  <div class="card mb-3 hidden" id="card-dtc">
+    <div class="card-header d-flex align-items-center gap-2 py-2 flex-wrap">
+      <span class="step-num" style="background:#fd7e14">D</span>
+      <strong id="dtc-title">DTC Extraction Result</strong>
+      <span class="mode-badge hidden" id="dtc-mode-badge"></span>
+      <span class="badge text-bg-light hidden" id="dtc-debug-badge"></span>
+      <div class="ms-auto hidden" id="dtc-sw-filter-wrap"></div>
+    </div>
+    <div class="card-body py-2" id="dtc-body"></div>
+  </div>
+
+  <!-- ╠═══════════════════════════════════════════════════════════╠
+      STEP 4 – Analysis
+       ╠═══════════════════════════════════════════════════════════╠ -->
+  <div class="card mb-3 hidden" id="card3">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="step-num">4</span>
+      <strong id="card3-title">Analysis</strong>
+    </div>
+    <div class="card-body">
+
+      <!-- Module info -->
+      <div class="alert alert-info py-2 small mb-3" id="mod-info">Extracting module...</div>
+
+      <!-- Analysis action -->
+      <div class="mb-3">
+        <div class="fw-semibold mb-2">Generate report:</div>
+          <div class="mb-2" style="max-width:320px;">
+            <label class="form-label small fw-semibold mb-1">Classification mode</label>
+            <div class="form-control form-control-sm bg-light">Auto only (Prompt rules + runtime evidence blocks)</div>
+        </div>
+        <div class="mb-2">
+            <label class="form-label small fw-semibold mb-1">Report outputs after generation</label>
+          <div class="report-view-toggle" id="report-view-toggle">
+            <button class="report-view-btn active" id="report-view-revised-btn"
+                      onclick="toggleReportOutput('revised')">Revised Report</button>
+            <button class="report-view-btn" id="report-view-raw-rendered-btn"
+                onclick="toggleReportOutput('raw-rendered')">Raw Rendered</button>
+            <button class="report-view-btn" id="report-view-raw-source-btn"
+                onclick="toggleReportOutput('raw-source')">Raw Source</button>
+            <button class="report-view-btn" id="report-view-compare-btn"
+                      onclick="selectAllReportOutputs()">Compare (All)</button>
+          </div>
+            <div class="form-text">Select 1 output for single view, or 2-3 outputs for compare view.</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-primary type-btn" id="btn-analyze"
+                  onclick="runAnalysis()" disabled>
+            📋 Generate Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Calibration search status (shown after module extraction) -->
+      <div class="hidden mb-3" id="cal-mod-status"></div>
+
+      <!-- Result -->
+      <div class="hidden" id="analysis-wrap">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>Ford LLM Report</strong>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small" id="ana-status"></span>
+            <span class="badge text-bg-info hidden" id="ana-part-badge"></span>
+            <span class="text-muted small" id="ana-progress" style="font-variant-numeric:tabular-nums;"></span>
+            <button class="btn btn-sm btn-outline-secondary hidden" id="scroll-latest-btn"
+                    onclick="scrollReportToLatest()">⬇ Scroll to Latest</button>
+            <button class="btn btn-sm btn-primary" id="copy-prompt-btn"
+                    onclick="copyPrompt()" disabled>📋 Copy Report</button>
+            <div class="report-save-actions">
+              <button class="btn btn-sm btn-success" id="save-report-html-revised-btn"
+                onclick="saveReport('revised')" disabled>💾 Save Revised</button>
+              <button class="btn btn-sm btn-outline-success" id="save-report-html-raw-rendered-btn"
+                onclick="saveReport('raw-rendered')" disabled>💾 Save Raw Rendered</button>
+              <button class="btn btn-sm btn-outline-success" id="save-report-raw-source-btn"
+                onclick="saveReport('raw-source')" disabled>💾 Save Raw Source</button>
+              <button class="btn btn-sm btn-outline-primary" id="save-report-selected-btn"
+                onclick="saveReport('selected')" disabled>💾 Save Selected</button>
+              <button class="btn btn-sm btn-outline-primary" id="save-report-all-btn"
+                onclick="saveReport('all')" disabled>💾 Save All</button>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-warning py-2 small mb-2" id="prompt-guide">
+          Generate a report directly from the extracted module and optional calibration data.
+        </div>
+        <div class="hidden report-diff-indicators" id="report-diff-indicators"></div>
+        <div id="analysis-out"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Calibration search result shown below Step 4 -->
+  <div class="card mb-3 hidden" id="card-cal-result">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <span class="step-num" style="background:#20c997; font-size:.7rem; width:auto; padding:4px 7px; border-radius:4px">CAL</span>
+      <strong id="cal-result-title">Cal Data Search Result</strong>
+      <span class="mode-badge hidden" id="cal-mode-badge"></span>
+      <span class="text-muted small ms-auto" id="cal-result-elapsed"></span>
+    </div>
+    <div class="card-body py-2">
+      <div class="hidden mb-3" id="cal-source-meta"></div>
+      <pre id="cal-log" style="background:#1e1e2e;color:#a6e3a1;font-family:'Consolas','Courier New',monospace;
+           padding:10px;border-radius:6px;font-size:.82rem;max-height:160px;overflow-y:auto;
+           white-space:pre-wrap;margin-bottom:12px;"></pre>
+      <div id="cal-result-table"></div>
+    </div>
+  </div>
+
+    </div>
+    <div class="col-xl-3 order-1 order-xl-2 quick-start-col">
+      <div class="quick-start-wrap">
+        <div class="card mb-3 quick-start">
+          <div class="card-body py-3">
+            <div class="fw-semibold mb-2">How to use</div>
+            <ol class="small text-muted">
+              <li>Click <strong>Scan C-BOOK Folder</strong> and choose one C file.</li>
+              <li>Select the matching calibration file, or click <strong>Skip</strong>.</li>
+              <li>Click one module to extract it, or use <strong>Select All</strong> for bulk extraction.</li>
+              <li>Use <strong>Extract All DTCs</strong> to review DTC and SW status from the selected files.</li>
+              <li>Click <strong>Generate Report</strong> to send the extracted module and calibration data directly to Ford LLM.</li>
+            </ol>
+            <div class="quick-start-note">
+              Purpose: quickly split a C-BOOK file into modules, match module calibration data, check DTC/SW status, and generate a Ford LLM report from the extracted code.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let filesArr   = [];   // all C files from scan
+let selFile    = null; // selected file object
+let allMods    = [];   // all module names
+let selMod     = null; // selected module name
+let modFile    = null; // path of extracted module .txt
+let resultText = '';   // accumulated LLM output
+let rawSourceText = ''; // exact LLM response before any rendering or wrapping
+let rawSourcePath = '';
+let reportRenderTimer = null;
+const REPORT_OUTPUT_ORDER = ['revised', 'raw-rendered', 'raw-source'];
+let selectedReportOutputs = ['revised'];
+let reportCalCsvFile = ''; // module-specific CSV generated from calibration search
+let calFilesArr = [];   // cal data files from scan
+let selCalFile  = null; // selected cal data file path
+let modDtcCodes = [];   // DTC codes found from selected CSV DTC_SW entries
+let isBulkProcessing = false;
+let lastDtcResult = null;
+let dtcSwFilterValues = new Set(['all']);
+let dtcShowUnused = false;
+let analysisPartProgress = { current: 0, total: 0 };
+const DTC_MODE_STORAGE_KEY = 'cbk.dtcMode';
+const UI_STATE_STORAGE_KEY = 'cbk.uiState.v1';
+const DTC_CACHE_STORAGE_KEY = 'cbk.dtcCache.v1';
+let pendingUiRestore = null;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
+
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildFileSignature(file) {
+  if (!file || !file.path) return null;
+  return `${file.path}::${file.size_mb ?? ''}`;
+}
+
+function buildCalFileSignature(file) {
+  if (!file || !file.path) return null;
+  return `${file.path}::${file.size_kb ?? ''}`;
+}
+
+function loadStoredUiState() {
+  try {
+    const raw = localStorage.getItem(UI_STATE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function loadStoredDtcCache() {
+  try {
+    const raw = localStorage.getItem(DTC_CACHE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function saveUiState() {
+  try {
+    const state = {
+      selectedFilePath: selFile?.path || null,
+      selectedFileSignature: buildFileSignature(selFile),
+      selectedCalPath: selCalFile || null,
+      selectedCalSignature: buildCalFileSignature(calFilesArr.find(file => file.path === selCalFile) || null),
+      selectedDtcMode: getSelectedDtcMode(),
+      dtcSwFilterValues: Array.from(dtcSwFilterValues || []),
+      dtcShowUnused: !!dtcShowUnused,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(UI_STATE_STORAGE_KEY, JSON.stringify(state));
+  } catch (_e) {
+  }
+}
+
+function saveCachedDtcResult() {
+  if (!lastDtcResult || !selFile) return;
+  try {
+    const state = {
+      selectedFilePath: selFile?.path || null,
+      selectedFileSignature: buildFileSignature(selFile),
+      selectedCalPath: selCalFile || null,
+      selectedCalSignature: buildCalFileSignature(calFilesArr.find(file => file.path === selCalFile) || null),
+      selectedDtcMode: getSelectedDtcMode(),
+      lastDtcResult,
+      dtcSwFilterValues: Array.from(dtcSwFilterValues || []),
+      dtcShowUnused: !!dtcShowUnused,
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DTC_CACHE_STORAGE_KEY, JSON.stringify(state));
+  } catch (_e) {
+  }
+}
+
+function clearCachedDtcState() {
+  lastDtcResult = null;
+  dtcSwFilterValues = new Set(['all']);
+  dtcShowUnused = false;
+  hide('card-dtc');
+  $('dtc-sw-filter-wrap').classList.add('hidden');
+  $('dtc-body').innerHTML = '';
+  $('dtc-title').textContent = 'DTC Extraction Result';
+  $('dtc-debug-badge').classList.add('hidden');
+  setModeBadge('dtc-mode-badge', '');
+}
+
+function tryRestoreCachedDtcResult() {
+  if (!pendingUiRestore || !pendingUiRestore.lastDtcResult) return false;
+  if (!selFile || pendingUiRestore.selectedFilePath !== selFile.path) return false;
+  if ((pendingUiRestore.selectedCalPath || null) !== (selCalFile || null)) return false;
+
+  const cachedResult = pendingUiRestore.lastDtcResult;
+  const cachedModeRaw = pendingUiRestore.selectedDtcMode || cachedResult.uds_mode || '';
+  if (cachedModeRaw && normalizeDtcModeValue(cachedModeRaw) !== getSelectedDtcMode()) return false;
+
+  lastDtcResult = cachedResult;
+  dtcSwFilterValues = new Set(
+    Array.isArray(pendingUiRestore.dtcSwFilterValues) && pendingUiRestore.dtcSwFilterValues.length
+      ? pendingUiRestore.dtcSwFilterValues
+      : ['all']
+  );
+  dtcShowUnused = !!pendingUiRestore.dtcShowUnused;
+  show('card-dtc');
+  renderDtcExtractionResult();
+  saveUiState();
+  return true;
+}
+
+async function restoreCachedSelectionAfterScan() {
+  pendingUiRestore = {
+    ...(loadStoredUiState() || {}),
+    ...(loadStoredDtcCache() || {}),
+  };
+  if (!pendingUiRestore?.selectedFilePath) return;
+
+  const fileIndex = filesArr.findIndex(file => file.path === pendingUiRestore.selectedFilePath);
+  if (fileIndex < 0) return;
+
+  const selectedFile = filesArr[fileIndex];
+  if (pendingUiRestore.selectedFileSignature && pendingUiRestore.selectedFileSignature !== buildFileSignature(selectedFile)) {
+    return;
+  }
+
+  await selectFile(fileIndex, { restoreFromCache: true, skipScroll: true });
+  tryRestoreCachedDtcResult();
+}
+
+function resetAnalysisPartBadge() {
+  analysisPartProgress = { current: 0, total: 0 };
+  const badge = $('ana-part-badge');
+  badge.textContent = '';
+  badge.classList.add('hidden');
+  badge.classList.remove('text-bg-success');
+  badge.classList.add('text-bg-info');
+}
+
+function updateAnalysisPartBadgeFromStatus(statusText) {
+  const text = String(statusText || '');
+  const match = text.match(/part\s*(\d+)\s*\/\s*(\d+)/i);
+  if (!match) return;
+
+  const current = parseInt(match[1], 10);
+  const total = parseInt(match[2], 10);
+  if (!Number.isFinite(current) || !Number.isFinite(total) || total <= 0) return;
+
+  analysisPartProgress = { current, total };
+  const badge = $('ana-part-badge');
+  badge.textContent = `Part ${current}/${total}`;
+  badge.classList.remove('hidden');
+  badge.classList.remove('text-bg-success');
+  badge.classList.add('text-bg-info');
+}
+
+function completeAnalysisPartBadge() {
+  const total = analysisPartProgress.total;
+  if (!total) return;
+
+  const badge = $('ana-part-badge');
+  badge.textContent = `Part ${total}/${total}`;
+  badge.classList.remove('hidden');
+  badge.classList.remove('text-bg-info');
+  badge.classList.add('text-bg-success');
+}
+
+function normalizeReportHtmlFragment(htmlText) {
+  let normalized = String(htmlText || '').trim();
+  normalized = normalized.replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+  const bodyMatch = normalized.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) {
+    normalized = bodyMatch[1].trim();
+  } else if (/<html[\s>]/i.test(normalized)) {
+    normalized = normalized.replace(/<!DOCTYPE[^>]*>/ig, '')
+      .replace(/<html[^>]*>/ig, '')
+      .replace(/<\/html>/ig, '')
+      .replace(/<head[\s\S]*?<\/head>/ig, '')
+      .trim();
+  }
+
+  return normalized;
+}
+
+const REPORT_HEADING_RE = /^\s*(?:section\s+)?(\d+)\s*[\.)\]:-]\s+(.+?)\s*$/i;
+const REPORT_HTML_TAG_RE = /<(section|h2|h3|h4|ul|li|div|p|details|summary|code)\b/i;
+const REPORT_UNKNOWN_PATTERNS = [
+  'not visible in provided scope',
+  'not supplied in the csv',
+  'current project value not supplied',
+  'current values not supplied',
+  'current value not provided',
+  'declared in source',
+  'definition/code-link unclear',
+  'relationship not fully visible',
+  'not fully evidenced',
+  'scope partial only',
+  'unclear in provided scope',
+  'relationship not visible',
+  'not supplied',
+];
+const REPORT_RETIRED_TITLES = [
+  'Key Calibration Deltas Used in This Analysis',
+  'Top Calibration Signals',
+  'Priority Action List',
+  'High-risk Delta Summary',
+  'Appendix',
+];
+
+function normalizeReportTitle(text) {
+  return String(text || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/^\s*(?:section\s+)?\d+\s*[\.)\]:-]\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function cleanupLegacyReportSections(htmlText) {
+  const source = String(htmlText || '').trim();
+  if (!source || typeof DOMParser === 'undefined') {
+    return source;
+  }
+
+  const retiredTitles = new Set(REPORT_RETIRED_TITLES.map(normalizeReportTitle));
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div id="report-root">${source}</div>`, 'text/html');
+  const root = doc.getElementById('report-root');
+  if (!root) {
+    return source;
+  }
+
+  root.querySelectorAll(':scope > section').forEach((section) => {
+    const heading = section.querySelector(':scope > h2');
+    if (!heading) {
+      return;
+    }
+    if (retiredTitles.has(normalizeReportTitle(heading.textContent))) {
+      section.remove();
+    }
+  });
+
+  root.querySelectorAll('h2, h3, h4, h5, h6').forEach((heading) => {
+    if (!retiredTitles.has(normalizeReportTitle(heading.textContent))) {
+      return;
+    }
+
+    let node = heading.nextSibling;
+    while (node) {
+      const nextNode = node.nextSibling;
+      if (node.nodeType === Node.ELEMENT_NODE && /^H[1-6]$/.test(node.tagName)) {
+        break;
+      }
+      node.remove();
+      node = nextNode;
+    }
+    heading.remove();
+  });
+
+  return root.innerHTML.trim();
+}
+
+function looksLikeHtmlFragment(text) {
+  return REPORT_HTML_TAG_RE.test(String(text || ''));
+}
+
+function stripUnknownPlaceholderBrackets(htmlText) {
+  let cleaned = String(htmlText || '');
+  [
+    'exact event-status call not visible in provided scope',
+    'exact compared variable not visible in provided scope',
+    'exact state-transition token not visible in provided scope',
+    'exact comparator not visible in provided scope',
+  ].forEach((placeholder) => {
+    cleaned = cleaned.replaceAll(`[${placeholder}]`, placeholder);
+  });
+  return cleaned;
+}
+
+function normalizeBareCodeListItems(htmlText) {
+  const source = String(htmlText || '').trim();
+  if (!source || typeof DOMParser === 'undefined') {
+    return source;
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div id="report-root">${source}</div>`, 'text/html');
+  const root = doc.getElementById('report-root');
+  if (!root) {
+    return source;
+  }
+
+  root.querySelectorAll('li').forEach((item) => {
+    if (item.querySelector(':scope > .expr, :scope > .meaning, :scope > .evidence, :scope > .unknown, :scope > .kv')) {
+      return;
+    }
+
+    const children = Array.from(item.children);
+    if (children.length !== 1 || children[0].tagName !== 'CODE') {
+      return;
+    }
+
+    const expr = doc.createElement('div');
+    expr.className = 'expr';
+    expr.appendChild(children[0].cloneNode(true));
+    item.innerHTML = '';
+    item.appendChild(expr);
+  });
+
+  return root.innerHTML.trim();
+}
+
+function isExpressionLine(line) {
+  const sample = String(line || '').trim();
+  if (!sample) return false;
+
+  const low = sample.toLowerCase();
+  if (low.startsWith('meaning:') || low.startsWith('evidence:')) return false;
+  if (REPORT_UNKNOWN_PATTERNS.some(pattern => low.includes(pattern))) return false;
+
+  const tokenLike = /\b[A-Z][A-Z0-9_]+\b/.test(sample) || /\b[a-z][a-z0-9_]+\b/.test(sample);
+  const exprMarkers = ['->', '==', '>=', '<=', ' = ', '(', ')', '[', ']', 'default'];
+  return tokenLike && exprMarkers.some(marker => sample.includes(marker));
+}
+
+function classifyLine(line) {
+  const sample = String(line || '').trim();
+  if (!sample) return 'blank';
+
+  const low = sample.toLowerCase();
+  if (REPORT_HEADING_RE.test(sample)) return 'heading';
+  if (low.startsWith('meaning:')) return 'meaning';
+  if (low.startsWith('evidence:')) return 'evidence';
+  if (sample.includes(' = ')) {
+    const lhs = sample.split(' = ', 1)[0].trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_\[\]]*$/.test(lhs)) return 'kv';
+  }
+  if (REPORT_UNKNOWN_PATTERNS.some(pattern => low.includes(pattern))) return 'unknown';
+  if (isExpressionLine(sample)) return 'expr';
+  return 'text';
+}
+
+function textReportToHtml(text) {
+  const lines = String(text || '').split(/\r?\n/);
+  const out = [];
+  const retiredTitles = new Set(REPORT_RETIRED_TITLES.map(normalizeReportTitle));
+  let inList = false;
+  let sectionOpen = false;
+  let skippingRetiredSection = false;
+
+  const openSectionIfNeeded = () => {
+    if (!sectionOpen) {
+      out.push('<section class="report-section">');
+      sectionOpen = true;
+    }
+  };
+
+  const closeList = () => {
+    if (inList) {
+      out.push('</ul>');
+      inList = false;
+    }
+  };
+
+  const openList = () => {
+    if (!inList) {
+      out.push('<ul class="report-list">');
+      inList = true;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const sample = rawLine.trim();
+    const kind = classifyLine(sample);
+
+    if (kind === 'blank') continue;
+
+    const headingMatch = sample.match(REPORT_HEADING_RE);
+    if (headingMatch) {
+      skippingRetiredSection = false;
+      const title = headingMatch[2].trim();
+      if (retiredTitles.has(normalizeReportTitle(title))) {
+        closeList();
+        skippingRetiredSection = true;
+        continue;
+      }
+
+      closeList();
+      if (sectionOpen) out.push('</section>');
+      out.push(`<section class="report-section"><h2 class="section-title">${escapeHtml(title)}</h2>`);
+      sectionOpen = true;
+      continue;
+    }
+
+    if (skippingRetiredSection) continue;
+
+    openSectionIfNeeded();
+    const escaped = escapeHtml(sample);
+
+    if (kind === 'expr') {
+      openList();
+      out.push(`<li><div class="expr"><code>${escaped}</code></div></li>`);
+    } else if (kind === 'meaning') {
+      openList();
+      out.push(`<li><div class="meaning">${escaped}</div></li>`);
+    } else if (kind === 'evidence') {
+      openList();
+      out.push(`<li><div class="evidence">${escaped}</div></li>`);
+    } else if (kind === 'unknown') {
+      openList();
+      out.push(`<li><div class="unknown">${escaped}</div></li>`);
+    } else if (kind === 'kv') {
+      openList();
+      out.push(`<li><div class="kv">${escaped}</div></li>`);
+    } else {
+      closeList();
+      out.push(`<p>${escaped}</p>`);
+    }
+  }
+
+  closeList();
+  if (sectionOpen) out.push('</section>');
+  return out.join('');
+}
+
+function prepareReportHtml(rawOutput) {
+  const normalized = stripUnknownPlaceholderBrackets(normalizeReportHtmlFragment(rawOutput));
+  const prepared = looksLikeHtmlFragment(normalized)
+    ? normalized
+    : textReportToHtml(normalized);
+  return normalizeBareCodeListItems(cleanupLegacyReportSections(prepared));
+}
+
+function getExactRawSourceText() {
+  return rawSourceText == null ? '' : String(rawSourceText);
+}
+
+function getRawReportSourceText() {
+  return getExactRawSourceText();
+}
+
+function getRevisedReportSourceText() {
+  return resultText == null ? '' : String(resultText);
+}
+
+function getUnavailableReportMarkup(label, detail) {
+  return `<div class="alert alert-warning py-2 mb-0"><strong>${escapeHtml(label)}</strong><br>${escapeHtml(detail)}</div>`;
+}
+
+function getRawRenderedBody(sourceText) {
+  return sourceText == null ? '' : String(sourceText);
+}
+
+function getRevisedReportBody(sourceText) {
+  return prepareReportHtml(String(sourceText || ''));
+}
+
+function normalizeReportOutput(mode) {
+  return REPORT_OUTPUT_ORDER.includes(mode) ? mode : 'revised';
+}
+
+function normalizeReportOutputSelection(outputs) {
+  const normalized = Array.from(new Set((Array.isArray(outputs) ? outputs : [outputs])
+    .map(normalizeReportOutput)
+    .filter(Boolean)));
+  const ordered = REPORT_OUTPUT_ORDER.filter(mode => normalized.includes(mode));
+  return ordered.length ? ordered : ['revised'];
+}
+
+function getSelectedReportOutputs() {
+  return normalizeReportOutputSelection(selectedReportOutputs);
+}
+
+function hasMultipleReportOutputsSelected() {
+  return getSelectedReportOutputs().length > 1;
+}
+
+function getPrimarySelectedReportOutput() {
+  return getSelectedReportOutputs()[0] || 'revised';
+}
+
+function getSourceTextForMode(mode) {
+  const normalizedMode = normalizeReportOutput(mode);
+  if (normalizedMode === 'raw-rendered' || normalizedMode === 'raw-source') {
+    return getRawReportSourceText();
+  }
+  return getRevisedReportSourceText();
+}
+
+function getReportBodyForMode(mode) {
+  const normalizedMode = normalizeReportOutput(mode);
+  const sourceText = getSourceTextForMode(normalizedMode);
+  if (normalizedMode === 'raw-rendered' || normalizedMode === 'raw-source') {
+    return getRawRenderedBody(sourceText);
+  }
+  return getRevisedReportBody(sourceText);
+}
+
+function getSelectedReportBody(mode = null) {
+  return getReportBodyForMode(mode || getPrimarySelectedReportOutput());
+}
+
+function getReportModeLabel(mode) {
+  if (mode === 'raw-rendered') return 'Raw Rendered';
+  if (mode === 'raw-source') return 'Raw Source';
+  return 'Revised';
+}
+
+function getDisplayMarkup(sourceText) {
+  const html = String(sourceText || '');
+  if (!html) return '';
+  if (looksLikeHtmlFragment(html) && window.DOMPurify) {
+    return window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  }
+  return escapeHtml(html).replace(/\n/g, '<br>');
+}
+
+function getRawDisplayMarkup(sourceText) {
+  const html = sourceText == null ? '' : String(sourceText);
+  if (!html) return '';
+  if (looksLikeHtmlFragment(html)) {
+    return html;
+  }
+  return escapeHtml(html).replace(/\n/g, '<br>');
+}
+
+function countTextBytes(text) {
+  const value = String(text || '');
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value).length;
+  }
+  return value.length;
+}
+
+function buildDiffIndicatorsMarkup() {
+  const exactRaw = getExactRawSourceText();
+  const revisedSource = getRevisedReportSourceText();
+  const rawRendered = getRawRenderedBody(exactRaw);
+  const revised = getRevisedReportBody(revisedSource);
+  const hasSource = !!exactRaw;
+  const hasRevised = !!revisedSource;
+
+  if (!hasSource && !hasRevised) {
+    return '';
+  }
+
+  const chips = [
+    `<span class="report-diff-chip meta">Raw Source ${countTextBytes(exactRaw)} B</span>`,
+    `<span class="report-diff-chip meta">Raw Rendered ${countTextBytes(rawRendered)} B</span>`,
+    `<span class="report-diff-chip meta">Revised ${countTextBytes(revised)} B</span>`,
+  ];
+
+  if (hasSource) {
+    const sourceVsRenderedSame = exactRaw === rawRendered;
+    const sourceVsRevisedSame = exactRaw === revised;
+    chips.push(`<span class="report-diff-chip ${sourceVsRenderedSame ? 'same' : 'changed'}">Source vs Rendered: ${sourceVsRenderedSame ? 'identical' : 'changed'}</span>`);
+    chips.push(`<span class="report-diff-chip ${sourceVsRevisedSame ? 'same' : 'changed'}">Source vs Revised: ${sourceVsRevisedSame ? 'identical' : 'changed'}</span>`);
+  } else {
+    chips.push('<span class="report-diff-chip changed">Raw Source capture unavailable for this run</span>');
+  }
+
+  if (hasSource && hasRevised) {
+    const renderedVsRevisedSame = rawRendered === revised;
+    chips.push(`<span class="report-diff-chip ${renderedVsRevisedSame ? 'same' : 'changed'}">Rendered vs Revised: ${renderedVsRevisedSame ? 'identical' : 'changed'}</span>`);
+  }
+
+  if (rawSourcePath) {
+    chips.push(`<span class="report-diff-chip meta">Captured: ${escapeHtml(rawSourcePath)}</span>`);
+  }
+
+  return chips.join('');
+}
+
+function updateDiffIndicators() {
+  const target = $('report-diff-indicators');
+  const markup = buildDiffIndicatorsMarkup();
+  if (!markup) {
+    target.innerHTML = '';
+    hide('report-diff-indicators');
+    return;
+  }
+  target.innerHTML = markup;
+  show('report-diff-indicators');
+}
+
+function updateReportViewButtons() {
+  const revisedBtn = $('report-view-revised-btn');
+  const rawRenderedBtn = $('report-view-raw-rendered-btn');
+  const rawSourceBtn = $('report-view-raw-source-btn');
+  const compareBtn = $('report-view-compare-btn');
+  const selected = getSelectedReportOutputs();
+  const allSelected = selected.length === REPORT_OUTPUT_ORDER.length;
+
+  revisedBtn.classList.toggle('active', selected.includes('revised'));
+  rawRenderedBtn.classList.toggle('active', selected.includes('raw-rendered'));
+  rawSourceBtn.classList.toggle('active', selected.includes('raw-source'));
+  compareBtn.classList.toggle('active', allSelected);
+}
+
+function setSelectedReportOutputs(outputs) {
+  selectedReportOutputs = normalizeReportOutputSelection(outputs);
+  updateReportViewButtons();
+  renderReportOutput(resultText);
+}
+
+function toggleReportOutput(mode) {
+  const normalizedMode = normalizeReportOutput(mode);
+  const selected = getSelectedReportOutputs();
+  if (selected.includes(normalizedMode)) {
+    if (selected.length === 1) {
+      return;
+    }
+    setSelectedReportOutputs(selected.filter(item => item !== normalizedMode));
+    return;
+  }
+  setSelectedReportOutputs([...selected, normalizedMode]);
+}
+
+function selectAllReportOutputs() {
+  setSelectedReportOutputs(REPORT_OUTPUT_ORDER);
+}
+
+function renderReportOutput(htmlText) {
+  const target = $('analysis-out');
+  const revisedText = getRevisedReportSourceText();
+  const rawText = getRawReportSourceText();
+  const selected = getSelectedReportOutputs();
+  const compareMode = selected.length > 1;
+  target.classList.toggle('compare-mode', compareMode);
+
+  if (!revisedText && !rawText) {
+    target.innerHTML = '';
+    updateReportViewButtons();
+    updateDiffIndicators();
+    refreshScrollLatestButton();
+    return;
+  }
+
+  if (compareMode) {
+    const comparePanels = selected.map(mode => {
+      if (mode === 'raw-source') {
+        const rawSourceMarkup = rawText
+          ? `<div class="report-source-wrap"><pre class="raw-source-pre">${escapeHtml(rawText)}</pre></div>`
+          : getUnavailableReportMarkup('Raw Source unavailable', 'The app did not capture an exact raw model response for this run.');
+        return (
+          `<section class="report-compare-panel">` +
+            `<div class="report-compare-header">` +
+              `<div class="report-compare-title">Raw Source</div>` +
+              `<div class="report-compare-note">Exact escaped model response</div>` +
+            `</div>` +
+            `<div class="report-compare-body">${rawSourceMarkup}</div>` +
+          `</section>`
+        );
+      }
+
+      if (mode === 'raw-rendered') {
+        const rawRenderedMarkup = rawText
+          ? `<div class="report-content">${getRawDisplayMarkup(getReportBodyForMode('raw-rendered'))}</div>`
+          : getUnavailableReportMarkup('Raw Rendered unavailable', 'Raw Rendered only shows exact model HTML. This run has no raw model body to render.');
+        return (
+          `<section class="report-compare-panel">` +
+            `<div class="report-compare-header">` +
+              `<div class="report-compare-title">Raw Rendered</div>` +
+              `<div class="report-compare-note">Exact model HTML rendered by the browser</div>` +
+            `</div>` +
+            `<div class="report-compare-body">${rawRenderedMarkup}</div>` +
+          `</section>`
+        );
+      }
+
+      const revisedMarkup = revisedText
+        ? `<div class="report-content">${getDisplayMarkup(getReportBodyForMode('revised'))}</div>`
+        : getUnavailableReportMarkup('Revised Report unavailable', 'The app did not receive a revised report body for this run.');
+
+      return (
+        `<section class="report-compare-panel">` +
+          `<div class="report-compare-header">` +
+            `<div class="report-compare-title">Revised Report</div>` +
+            `<div class="report-compare-note">Post-processed version</div>` +
+          `</div>` +
+          `<div class="report-compare-body">${revisedMarkup}</div>` +
+        `</section>`
+      );
+    }).join('');
+
+    target.innerHTML = `<div class="report-compare-stack">${comparePanels}</div>`;
+  } else {
+    const selectedMode = getPrimarySelectedReportOutput();
+    if (selectedMode === 'raw-source') {
+      target.innerHTML = rawText
+        ? `<div class="report-source-wrap"><pre class="raw-source-pre">${escapeHtml(rawText)}</pre></div>`
+        : getUnavailableReportMarkup('Raw Source unavailable', 'The app did not capture an exact raw model response for this run.');
+    } else {
+      if (selectedMode === 'raw-rendered' && !rawText) {
+        target.innerHTML = getUnavailableReportMarkup('Raw Rendered unavailable', 'Raw Rendered only shows exact model HTML. This run has no raw model body to render.');
+      } else if (selectedMode === 'revised' && !revisedText) {
+        target.innerHTML = getUnavailableReportMarkup('Revised Report unavailable', 'The app did not receive a revised report body for this run.');
+      } else {
+        const htmlForDisplay = getSelectedReportBody(selectedMode);
+        const markup = selectedMode === 'raw-rendered'
+          ? getRawDisplayMarkup(htmlForDisplay)
+          : getDisplayMarkup(htmlForDisplay);
+        target.innerHTML = `<div class="report-content">${markup}</div>`;
+      }
+    }
+  }
+  updateReportViewButtons();
+  updateDiffIndicators();
+  refreshScrollLatestButton();
+}
+
+function scheduleReportRender() {
+  if (reportRenderTimer) return;
+  reportRenderTimer = setTimeout(() => {
+    reportRenderTimer = null;
+    renderReportOutput(resultText);
+  }, 90);
+}
+
+function showReportError(message) {
+  $('analysis-out').innerHTML = `<div class="alert alert-danger py-2 mb-0">❌ ${escapeHtml(message)}</div>`;
+  updateReportViewButtons();
+  updateDiffIndicators();
+  refreshScrollLatestButton();
+}
+
+function isReportNearBottom() {
+  const out = $('analysis-out');
+  return (out.scrollTop + out.clientHeight) >= (out.scrollHeight - 20);
+}
+
+function refreshScrollLatestButton() {
+  if (hasMultipleReportOutputsSelected()) {
+    $('scroll-latest-btn').classList.add('hidden');
+    return;
+  }
+
+  const out = $('analysis-out');
+  const btn = $('scroll-latest-btn');
+  const hasOverflow = out.scrollHeight > (out.clientHeight + 10);
+  if (!hasOverflow || isReportNearBottom()) {
+    btn.classList.add('hidden');
+  } else {
+    btn.classList.remove('hidden');
+  }
+}
+
+function scrollReportToLatest() {
+  const out = $('analysis-out');
+  out.scrollTop = out.scrollHeight;
+  refreshScrollLatestButton();
+}
+
+function csvActionLabel(action) {
+  return action === 'skipped' ? 'unchanged' : 'updated';
+}
+
+function getSelectedDtcMode() {
+  return normalizeDtcModeValue($('dtc-mode-select')?.value || 'non-uds');
+}
+
+function normalizeDtcModeValue(value) {
+  const mode = String(value || '').trim().toLowerCase();
+  if (mode === 'uds' || mode === 'both' || mode === 'non-uds') return mode;
+  return 'non-uds';
+}
+
+function loadStoredDtcMode() {
+  try {
+    return normalizeDtcModeValue(localStorage.getItem(DTC_MODE_STORAGE_KEY));
+  } catch (_e) {
+    return 'non-uds';
+  }
+}
+
+function saveDtcMode(mode) {
+  try {
+    localStorage.setItem(DTC_MODE_STORAGE_KEY, normalizeDtcModeValue(mode));
+  } catch (_e) {
+  }
+}
+
+function applyDtcMode(mode) {
+  const select = $('dtc-mode-select');
+  if (!select) return;
+  select.value = normalizeDtcModeValue(mode);
+}
+
+function getSelectedDtcModeLabel() {
+  const mode = getSelectedDtcMode();
+  if (mode === 'uds') return 'UDS only';
+  if (mode === 'non-uds') return 'Non-UDS only';
+  return 'Both';
+}
+
+function setModeBadge(id, label) {
+  const badge = $(id);
+  if (!badge) return;
+  if (!label) {
+    badge.textContent = '';
+    badge.classList.add('hidden');
+    return;
+  }
+  badge.textContent = label;
+  badge.classList.remove('hidden');
+}
+
+const FORD_LLM_DEFAULT_MODEL = 'gpt-5.2-2025-12-11';
+const FORD_LLM_FALLBACK_MODELS = [
+  'gpt-5-2025-08-07',
+  'gpt-5-mini-2025-08-07',
+  'gpt-5-nano-2025-08-07',
+  'gpt-4.1',
+];
+
+function setFordModelOptions(models, selectedModel) {
+  const select = $('ford-model');
+  const uniqueModels = Array.from(new Set((models || [])
+    .map(modelName => (modelName || '').trim())
+    .filter(Boolean)));
+
+  if (!uniqueModels.length) {
+    uniqueModels.push(FORD_LLM_DEFAULT_MODEL);
+  }
+
+  const preferredModel = (selectedModel || '').trim();
+  if (preferredModel && !uniqueModels.includes(preferredModel)) {
+    uniqueModels.unshift(preferredModel);
+  }
+
+  select.innerHTML = '';
+  uniqueModels.forEach(modelName => {
+    const option = document.createElement('option');
+    option.value = modelName;
+    option.textContent = modelName;
+    select.appendChild(option);
+  });
+
+  if (preferredModel && uniqueModels.includes(preferredModel)) {
+    select.value = preferredModel;
+  } else if (uniqueModels.includes(FORD_LLM_DEFAULT_MODEL)) {
+    select.value = FORD_LLM_DEFAULT_MODEL;
+  } else {
+    select.value = uniqueModels[0];
+  }
+}
+
+async function loadFordLlmModelOptions(selectedModel) {
+  try {
+    const r = await fetch('/api/ford-llm-models', { cache: 'no-store' });
+    const d = await r.json();
+    if (r.ok && d.ok) {
+      setFordModelOptions(
+        d.models || [],
+        selectedModel || d.selected_model || d.default_model || FORD_LLM_DEFAULT_MODEL,
+      );
+      return;
+    }
+  } catch (e) {
+  }
+
+  setFordModelOptions(FORD_LLM_FALLBACK_MODELS, selectedModel || FORD_LLM_DEFAULT_MODEL);
+}
+
+async function loadFordLlmSettings() {
+  try {
+    const r = await fetch('/api/ford-llm-settings', { cache: 'no-store' });
+    const d = await r.json();
+    if (d.error) {
+      $('ford-settings-status').textContent = '❌ Failed to load settings';
+      return;
+    }
+    $('ford-base-url').value = d.base_url || 'https://api.pivpn.core.ford.com/fordllmapi/api/v1';
+    await loadFordLlmModelOptions(d.model || d.default_model || FORD_LLM_DEFAULT_MODEL);
+    $('ford-client-id').value = '';
+    $('ford-client-secret').value = '';
+    $('ford-token').value = '';
+    if (d.has_client_credentials) {
+      $('ford-settings-status').textContent = `Client credentials configured via ${d.auth_source}`;
+    } else if (d.has_bearer_token) {
+      $('ford-settings-status').textContent = `Bearer token available via ${d.auth_source}`;
+    } else {
+      $('ford-settings-status').textContent = 'No Ford LLM auth configured yet';
+    }
+  } catch (e) {
+    $('ford-settings-status').textContent = '❌ Failed to load settings';
+  }
+}
+
+async function saveFordLlmSettings() {
+  $('ford-settings-status').textContent = 'Saving settings...';
+  try {
+    const r = await fetch('/api/ford-llm-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        base_url: $('ford-base-url').value,
+        model: $('ford-model').value,
+        client_id: $('ford-client-id').value,
+        client_secret: $('ford-client-secret').value,
+        bearer_token: $('ford-token').value,
+        preserve_existing_token: !$('ford-token').value.trim(),
+        preserve_existing_client_id: !$('ford-client-id').value.trim(),
+        preserve_existing_client_secret: !$('ford-client-secret').value.trim(),
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) {
+      $('ford-settings-status').textContent = '❌ ' + (d.error || 'Failed to save settings');
+      return;
+    }
+    $('ford-client-id').value = '';
+    $('ford-client-secret').value = '';
+    $('ford-token').value = '';
+    $('ford-settings-status').textContent = '✅ Settings saved';
+    await loadFordLlmSettings();
+  } catch (e) {
+    $('ford-settings-status').textContent = '❌ Save failed: ' + e;
+  }
+}
+
+async function testFordLlmSettings() {
+  $('ford-settings-status').textContent = 'Testing connection...';
+  try {
+    const r = await fetch('/api/ford-llm-settings/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const d = await r.json();
+    if (!r.ok || d.error || !d.ok) {
+      $('ford-settings-status').textContent = '❌ ' + (d.error || d.hint || 'Ford LLM test failed');
+      return;
+    }
+    if (Array.isArray(d.models) && d.models.length) {
+      setFordModelOptions(d.models, $('ford-model').value || d.selected_model || FORD_LLM_DEFAULT_MODEL);
+    }
+    const shownModels = (d.models || []).slice(0, 5).join(', ');
+    $('ford-settings-status').textContent = shownModels
+      ? `✅ Connection OK via ${d.auth_source || 'configured auth'}. Models: ${shownModels}`
+      : `✅ Connection OK via ${d.auth_source || 'configured auth'}`;
+  } catch (e) {
+    $('ford-settings-status').textContent = '❌ Test failed: ' + e;
+  }
+}
+
+// ── STEP 1: Scan ───────────────────────────────────────────────────────────
+async function doScan() {
+  const btn = $('scan-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
+
+  try {
+    const r = await fetch('/api/scan', {cache: 'no-store'});
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    filesArr = d.files;
+    renderFiles();
+    await restoreCachedSelectionAfterScan();
+  } catch (e) {
+    alert('Scan failed: ' + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Scan C-BOOK Folder';
+  }
+}
+
+function renderFiles() {
+  const area = $('file-area');
+  if (!filesArr.length) {
+    area.innerHTML = '<div class="text-muted text-center py-2">No C files found</div>';
+    return;
+  }
+  const byFolder = {};
+  filesArr.forEach((f, i) => {
+    (byFolder[f.folder] = byFolder[f.folder] || []).push({ ...f, idx: i });
+  });
+
+  let html = '';
+  for (const folder in byFolder) {
+    html += `<div class="folder-label">📁 ${folder}</div>`;
+    byFolder[folder].forEach(f => {
+      html += `
+        <div class="file-row" id="fr-${f.idx}" onclick="selectFile(${f.idx})">
+          <div>
+            <span>📄 <strong>${f.name}</strong>
+              <span class="text-muted ms-1">(${f.size_mb} MB)</span>
+            </span><br>
+            <span class="file-path text-muted small">${f.path}</span>
+          </div>
+          <span class="badge bg-primary">Select</span>
+        </div>`;
+    });
+  }
+  area.innerHTML = html;
+}
+
+async function selectFile(idx, options = {}) {
+  const { restoreFromCache = false, skipScroll = false } = options;
+  document.querySelectorAll('.file-row').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.file-row .badge').forEach(badge => {
+    badge.textContent = 'Select';
+  });
+  $(`fr-${idx}`).classList.add('active');
+  selFile     = filesArr[idx];
+  selMod      = null;
+  modFile     = null;
+  modDtcCodes = [];
+  reportCalCsvFile = '';
+  selCalFile  = null;
+  calFilesArr = [];
+  clearCachedDtcState();
+  hide('card2'); hide('card3'); hide('card-cal'); hide('card-cal-result'); hide('card-dtc');
+  hide('bulk-status');
+  $('bulk-status').innerHTML = '';
+  $('cal-selected-info').textContent = 'No file selected';
+  $('cal-file-area').innerHTML = '<div class="text-muted text-center py-2"><span class="spinner-border spinner-border-sm me-1"></span>Loading calibration text files from the same directory as the selected C file...</div>';
+
+  // Show progress on the badge
+  $(`fr-${idx}`).querySelector('.badge').textContent = 'Processing...';
+
+  try {
+    const r = await fetch('/api/extract-features', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filepath: selFile.path }),
+    });
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+
+    allMods = d.features;
+    $('mod-count').textContent  = d.count + ' modules';
+    $('btn-dtc').disabled = false;
+    $('btn-select-all').disabled = false;
+    $('feat-saved').innerHTML   = `💾 Feature list saved: <code>${d.saved_to}</code>`;
+    $('mod-filter').value       = '';
+    renderMods(allMods);
+    show('card-cal');
+    if (!restoreFromCache) {
+      saveUiState();
+    }
+    await doScanCal({ restoreFromCache });
+    if (!skipScroll) {
+      $('card-cal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } catch (e) {
+    alert('Feature extraction failed: ' + e);
+  } finally {
+    $(`fr-${idx}`).querySelector('.badge').textContent = 'Selected ✓';
+  }
+}
+
+// ── STEP 2: Modules ────────────────────────────────────────────────────────
+function filterMods() {
+  const q = $('mod-filter').value.toUpperCase();
+  renderMods(allMods.filter(m => m.includes(q)));
+}
+
+function renderMods(mods) {
+  $('mod-area').innerHTML = mods.length
+    ? mods.map(m =>
+        `<span class="mod-badge ${m === selMod ? 'active' : ''}"
+               id="mb-${m}" onclick="selectMod('${m}')">${m}</span>`
+      ).join('')
+    : '<span class="text-muted">No modules</span>';
+}
+
+function onDtcSwFilterChange(changedBox) {
+  const boxes = Array.from(document.querySelectorAll('input[name="dtc-sw-filter"]'));
+  const allBox = boxes.find(box => box.value === 'all');
+
+  if (changedBox && changedBox.value === 'all' && changedBox.checked) {
+    boxes.forEach(box => {
+      box.checked = box.value === 'all';
+    });
+    dtcSwFilterValues = new Set(['all']);
+    renderDtcExtractionResult();
+    saveCachedDtcResult();
+    saveUiState();
+    return;
+  }
+
+  if (changedBox && changedBox.value !== 'all' && changedBox.checked && allBox) {
+    allBox.checked = false;
+  }
+
+  const selectedValues = boxes
+    .filter(box => box.checked && box.value !== 'all')
+    .map(box => box.value);
+
+  if (!selectedValues.length) {
+    if (allBox) allBox.checked = true;
+    dtcSwFilterValues = new Set(['all']);
+    renderDtcExtractionResult();
+    saveCachedDtcResult();
+    saveUiState();
+    return;
+  }
+
+  dtcSwFilterValues = new Set(selectedValues);
+  renderDtcExtractionResult();
+  saveCachedDtcResult();
+  saveUiState();
+}
+
+function classifyDtcUsage(dt) {
+  if (dt.sw_status) return dt.sw_status;
+  const swValues = (dt.sw_items || []).map(sw => String(sw.value ?? '').trim()).filter(Boolean);
+  if (!swValues.length) return 'unused';
+  return swValues.some(value => value !== '0') ? 'monitoring-on' : 'monitoring-off';
+}
+
+function buildFallbackSwMeaningMap(d, dtcs) {
+  const meanings = { ...(d.sw_value_meanings || {}) };
+  const dtcTripsToMil = Number(d.dtc_trips_to_mil || 0);
+
+  const seenValues = new Set();
+  (dtcs || []).forEach(dt => {
+    (dt.sw_items || []).forEach(sw => {
+      const value = String(sw.value ?? '').trim();
+      if (value) seenValues.add(value);
+    });
+  });
+
+  seenValues.forEach(value => {
+    if (meanings[value]) return;
+    if (value === '0') meanings[value] = 'cal out / off';
+    else if (value === '1') meanings[value] = 'non-MIL';
+    else if (value === '2') meanings[value] = dtcTripsToMil > 0 ? `MIL, ${dtcTripsToMil}-trip on` : 'MIL';
+    else if (value === '5') meanings[value] = '1-trip MIL on';
+    else if (value === '7') meanings[value] = '1-trip MIL on, off on first/same-trip pass';
+  });
+
+  return meanings;
+}
+
+function toggleUnusedDtcSection() {
+  dtcShowUnused = !dtcShowUnused;
+  renderDtcExtractionResult();
+  saveCachedDtcResult();
+  saveUiState();
+}
+
+function normalizeDtcForFilter(dt, hasAll) {
+  const swItems = dt.sw_items || [];
+  if (!swItems.length) return dt;  // SW 없으면 그대로 포함 (필터 제외)
+  if (hasAll) return { ...dt, sw_items: swItems };
+
+  const filteredSwItems = swItems.filter(sw => dtcSwFilterValues.has(String(sw.value ?? '').trim()));
+  if (!filteredSwItems.length) return null;
+
+  return { ...dt, sw_items: filteredSwItems };
+}
+
+function renderDtcRows(dtcs, includeStatus = false) {
+  return dtcs.map(dt => {
+    const visibleModules = (dt.modules || []).filter(m => String(m || '').toUpperCase() !== 'UNKNOWN');
+    const swModuleSet = new Set((dt.sw_modules || []).map(m => String(m || '').toUpperCase()));
+    const primaryModuleSet = new Set((dt.primary_modules || []).map(m => String(m || '').toUpperCase()));
+    const mods = visibleModules.length
+      ? visibleModules.map(m => {
+          const moduleKey = String(m || '').toUpperCase();
+          const isMainModule = swModuleSet.has(moduleKey) || primaryModuleSet.has(moduleKey);
+          const btnClass = isMainModule ? 'mini-badge-btn mini-badge-main' : 'mini-badge-btn';
+          const label = isMainModule ? `★ ${m}` : m;
+          return `<button class="${btnClass}" onclick="selectModFromDtc('${m}')">${label}</button>`;
+        }).join('')
+      : '<span class="text-muted">-</span>';
+    const swItems = (dt.sw_items || []).length
+      ? dt.sw_items.map(sw => {
+          const a2lBadge = sw.a2l_confirmed ? '<span class="badge bg-info text-dark ms-1">A2L</span>' : '';
+          return `<div><code>${sw.name}</code> = <span class="text-muted">${sw.value}</span>${a2lBadge}</div>`;
+        }).join('')
+      : '<span class="text-muted">-</span>';
+    const statusKey = classifyDtcUsage(dt);
+    const statusLabel = dt.sw_status_label || (statusKey === 'monitoring-on' ? 'Monitoring On' : statusKey === 'monitoring-off' ? 'Monitoring Off' : 'Unused');
+    const status = statusKey === 'monitoring-on'
+      ? '<span class="badge bg-success">On (SW != 0)</span>'
+      : statusKey === 'monitoring-off'
+        ? '<span class="badge bg-warning text-dark">Off (SW = 0)</span>'
+        : '<span class="badge bg-secondary">Unused</span>';
+    return `<tr>
+      <td><span class="badge bg-danger me-1">${dt.code}</span></td>
+      <td>${mods}</td>
+      <td>${swItems}</td>
+      ${includeStatus ? `<td>${status}<div class="small text-muted mt-1">${statusLabel}</div></td>` : ''}
+      <td class="text-end text-muted">${dt.hits} hit(s)</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDtcSection(title, subtitle, dtcs, toneClass, includeStatus = false) {
+  return `<div class="dtc-group-card ${toneClass}">` +
+    `<div class="dtc-group-head">` +
+    `<div class="dtc-group-title">${title}</div>` +
+    `<div class="dtc-group-subtitle">${subtitle}</div>` +
+    `</div>` +
+    (dtcs.length
+      ? `<div class="result-window border-0 rounded-0">` +
+          `<table class="table table-sm table-hover mb-0">` +
+          `<thead class="table-light"><tr>` +
+          `<th>DTC</th><th>Modules</th><th>SW</th>${includeStatus ? '<th>Monitoring</th>' : ''}<th class="text-end">Hits</th></tr></thead>` +
+          `<tbody>${renderDtcRows(dtcs, includeStatus)}</tbody></table></div>`
+      : `<div class="dtc-empty">No DTC codes in this group for the current filter.</div>`)
+    + `</div>`;
+}
+
+function renderDtcExtractionResult() {
+  if (!lastDtcResult) return;
+
+  const d = lastDtcResult;
+  const swFilterWrap = $('dtc-sw-filter-wrap');
+  const dtcs = d.dtcs || [];
+  const swMeaningMap = buildFallbackSwMeaningMap(d, dtcs);
+
+  const swCategoryMap = new Map();
+  dtcs.forEach(dt => {
+    const seenValues = new Set((dt.sw_items || []).map(sw => String(sw.value ?? '').trim()).filter(Boolean));
+    seenValues.forEach(value => {
+      swCategoryMap.set(value, (swCategoryMap.get(value) || 0) + 1);
+    });
+  });
+
+  const swOptions = [
+    { value: 'all', label: 'All' },
+    ...Array.from(swCategoryMap.keys())
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map(value => {
+        const meaning = String(swMeaningMap[value] || '').trim();
+        const meaningSuffix = meaning ? ` (${meaning})` : '';
+        return { value, label: `SW ${value}${meaningSuffix}` };
+      }),
+  ];
+
+  const validValues = new Set(swOptions.map(option => option.value));
+  const sanitizedValues = Array.from(dtcSwFilterValues).filter(value => validValues.has(value));
+  if (!sanitizedValues.length || sanitizedValues.includes('all')) {
+    dtcSwFilterValues = new Set(['all']);
+  } else {
+    dtcSwFilterValues = new Set(sanitizedValues.filter(value => value !== 'all'));
+  }
+
+  swFilterWrap.innerHTML =
+    `<div class="dtc-sw-filter-box">` +
+    swOptions.map(option => {
+      const checked = dtcSwFilterValues.has('all')
+        ? option.value === 'all'
+        : dtcSwFilterValues.has(option.value);
+      return `<label class="dtc-sw-filter-item">` +
+        `<input type="checkbox" name="dtc-sw-filter" value="${option.value}" ${checked ? 'checked' : ''} onchange="onDtcSwFilterChange(this)">` +
+        `<span>${option.label}</span>` +
+      `</label>`;
+    }).join('') +
+    `</div>`;
+  swFilterWrap.classList.remove('hidden');
+
+  const hasAll = dtcSwFilterValues.has('all');
+
+  const filteredDtcs = dtcs
+    .map(dt => normalizeDtcForFilter(dt, hasAll))
+    .filter(Boolean);
+
+  $('dtc-title').textContent = `DTC Extraction Result — ${d.count} unique code(s)`;
+  setModeBadge('dtc-mode-badge', d.uds_mode_label || getSelectedDtcModeLabel());
+  const debugBadge = $('dtc-debug-badge');
+  const extractorVersion = d.extractor_version || 'unknown';
+  const serverPid = d.server_pid ?? '?';
+  const serverBootTime = d.server_boot_time || '?';
+  debugBadge.textContent = `${extractorVersion} | pid ${serverPid} | ${serverBootTime}`;
+  debugBadge.classList.remove('hidden');
+
+  const allUsedDtcs = dtcs.filter(dt => classifyDtcUsage(dt) !== 'unused');
+  const allUnusedDtcs = dtcs.filter(dt => classifyDtcUsage(dt) === 'unused');
+  const allMonitoringOffDtcs = allUsedDtcs.filter(dt => classifyDtcUsage(dt) === 'monitoring-off');
+  const allMonitoringOnDtcs = allUsedDtcs.filter(dt => classifyDtcUsage(dt) === 'monitoring-on');
+  const usedDtcs = filteredDtcs.filter(dt => classifyDtcUsage(dt) !== 'unused');
+
+  const onSwCountMap = new Map();
+  allMonitoringOnDtcs.forEach(dt => {
+    const values = new Set(
+      (dt.sw_items || [])
+        .map(sw => String(sw.value ?? '').trim())
+        .filter(value => value && value !== '0')
+    );
+    values.forEach(value => {
+      onSwCountMap.set(value, (onSwCountMap.get(value) || 0) + 1);
+    });
+  });
+
+  const onSwCountText = onSwCountMap.size
+    ? Array.from(onSwCountMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
+        .map(([value, count]) => `SW ${value}: <strong>${count}</strong>`)
+        .join(' &nbsp;|&nbsp; ')
+    : '<span class="text-muted">No monitoring-on SW values in current filter.</span>';
+
+  const filterSummary = hasAll
+    ? 'Current view: All SW values.'
+    : `Current view filter: ${Array.from(dtcSwFilterValues).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(', ')}.`;
+
+  const a2lSummary = d.a2l_summary || {};
+  const a2lSummaryText = d.a2l_file
+    ? `A2L cross-check: <strong>${a2lSummary.confirmed_dtcs || 0}</strong> DTC(s), <strong>${a2lSummary.matched_sw_items || 0}</strong> SW item(s), <strong>${a2lSummary.described_sw_items || 0}</strong> labeled value(s) from <code>${d.a2l_file.split(/[\\/]/).pop()}</code>.`
+    : '<span class="text-muted">A2L cross-check: no related A2L file was found.</span>';
+
+  const summaryHtml =
+    `<div class="dtc-status-grid">` +
+      `<div class="dtc-status-card"><div class="dtc-status-label">Used</div><div class="dtc-status-value">${allUsedDtcs.length}</div><div class="dtc-status-note">Monitoring On: ${allMonitoringOnDtcs.length} &nbsp;|&nbsp; Off: ${allMonitoringOffDtcs.length}</div></div>` +
+      `<div class="dtc-status-card"><div class="dtc-status-label">Unused</div><div class="dtc-status-value">${allUnusedDtcs.length}</div><div class="dtc-status-note">No SW value in DTC_SW data</div><button class="btn btn-sm btn-outline-secondary mt-2" onclick="toggleUnusedDtcSection()">${dtcShowUnused ? 'Hide Unused' : 'Show Unused'}</button></div>` +
+    `</div>` +
+    `<div class="text-muted small mb-1">Used details: Monitoring On (SW != 0) = <strong>${allMonitoringOnDtcs.length}</strong>, Monitoring Off (SW = 0) = <strong>${allMonitoringOffDtcs.length}</strong>.</div>` +
+    `<div class="text-muted small mb-1">Monitoring On SW count: ${onSwCountText}</div>` +
+    `<div class="text-muted small mb-1">${a2lSummaryText}</div>` +
+    `<div class="text-muted small mb-3">${filterSummary}</div>`;
+
+  $('dtc-body').innerHTML =
+    summaryHtml +
+    renderDtcSection(
+      'Used',
+      'Showing only DTCs matching the selected SW checkbox values.',
+      usedDtcs,
+      'monitoring-off'
+    ) +
+    (dtcShowUnused
+      ? renderDtcSection(
+          'Unused',
+          'DTCs without SW entries.',
+          allUnusedDtcs,
+          'unused-group'
+        )
+      : '');
+}
+
+async function extractAllDtcs() {
+  if (!selFile) return;
+  const btn = $('btn-dtc');
+  btn.disabled = true;
+  btn.textContent = '⏳ Extracting...';
+  show('card-dtc');
+  $('dtc-sw-filter-wrap').classList.add('hidden');
+  $('dtc-body').innerHTML = '<div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Scanning the C file and selected calibration file for DTCs and SW values...</div>';
+
+  try {
+    const r = await fetch(`/api/extract-dtcs?_=${Date.now()}`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filepath: selFile.path, cal_file: selCalFile, uds_mode: getSelectedDtcMode() }),
+    });
+    const d = await r.json();
+    if (d.error) {
+      $('dtc-body').innerHTML = `<span class="text-danger">❌ ${d.error}</span>`;
+      return;
+    }
+    if (!d.count) {
+      dtcShowUnused = false;
+      $('dtc-body').innerHTML = '<span class="text-muted">No DTC codes were found.</span>';
+      $('dtc-title').textContent = 'DTC Extraction Result — 0 found';
+      setModeBadge('dtc-mode-badge', d.uds_mode_label || getSelectedDtcModeLabel());
+      const debugBadge = $('dtc-debug-badge');
+      const extractorVersion = d.extractor_version || 'unknown';
+      const serverPid = d.server_pid ?? '?';
+      const serverBootTime = d.server_boot_time || '?';
+      debugBadge.textContent = `${extractorVersion} | pid ${serverPid} | ${serverBootTime}`;
+      debugBadge.classList.remove('hidden');
+      $('dtc-sw-filter-wrap').classList.add('hidden');
+      return;
+    }
+    dtcSwFilterValues = new Set(['all']);
+    dtcShowUnused = false;
+    lastDtcResult = d;
+    renderDtcExtractionResult();
+    saveCachedDtcResult();
+    saveUiState();
+    $('card-dtc').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    $('dtc-body').innerHTML = `<span class="text-danger">❌ Error: ${e}</span>`;
+    $('dtc-sw-filter-wrap').classList.add('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Extract All DTCs';
+  }
+}
+
+async function selectModFromDtc(name) {
+  show('card2');
+  await selectMod(name);
+}
+
+async function selectMod(name) {
+  selMod = name;
+  document.querySelectorAll('.mod-badge').forEach(el => el.classList.remove('active'));
+  $('mb-' + name)?.classList.add('active');
+
+  $('card3-title').textContent = 'Analysis: ' + name;
+  $('mod-info').innerHTML =
+    '<span class="spinner-border spinner-border-sm me-1"></span> Extracting module code...';
+  $('btn-analyze').disabled = true;
+  hide('analysis-wrap');
+  show('card3');
+  $('card3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const r = await fetch('/api/extract-module', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filepath: selFile.path, keyword: name }),
+    });
+    const d = await r.json();
+    if (d.error) {
+      $('mod-info').innerHTML = `<span class="text-danger">❌ ${d.error}</span>`;
+      return;
+    }
+    modFile = d.output_file;
+    modDtcCodes = [];
+    reportCalCsvFile = '';
+    // Show calibration search status.
+    const calStatus = $('cal-mod-status');
+    hide('cal-mod-status');
+    if (selCalFile) {
+      show('cal-mod-status');
+      calStatus.innerHTML =
+        `<span class="spinner-border spinner-border-sm me-1 text-success"></span>` +
+        `<span class="text-success">🔍 Loading DTCs and cal data from <strong>${selCalFile.split(/[\\/]/).pop()}</strong>...</span>`;
+      $('btn-analyze').disabled = true;
+      runCalSearch(name, d.output_file, getSelectedDtcMode());
+    } else {
+      show('cal-mod-status');
+      calStatus.innerHTML =
+        `<span class="text-muted">📂 No calibration file selected — ` +
+        `<a href="#" onclick="scrollToCalCard(); return false;">Step 2</a>` +
+        ` will load DTCs from the selected CSV automatically after you choose a file.</span>`;
+      $('btn-analyze').disabled = false;
+    }
+    // OBD detection badge.
+    let obdBadge = '';
+    if (d.is_obd) {
+      const hitList = d.obd_hits.map(h =>
+        `<span class="badge bg-warning text-dark me-1">${h.label} (${h.count})</span>`
+      ).join('');
+      obdBadge = `<br><span class="text-warning fw-semibold">🔬 OBD Monitoring logic detected</span> &nbsp;${hitList}`;
+    } else {
+      obdBadge = `<br><span class="text-secondary">📋 No OBD monitoring pattern detected in the extracted scope</span>`;
+    }
+    $('mod-info').innerHTML =
+      `✅ <b>${name}.txt</b> extracted &nbsp;│&nbsp; ` +
+      `${d.sections} sections &nbsp;│&nbsp; ${d.line_count.toLocaleString()} lines &nbsp;│&nbsp; ` +
+      `≈ ${d.est_tokens.toLocaleString()} tokens &nbsp;│&nbsp; ` +
+      `CSV DTC SW: ${selCalFile ? 'loading from selected calibration file' : 'select a calibration file to load'}<br>`+
+      `<small class="text-muted">${d.output_file}</small>` + obdBadge;
+  } catch (e) {
+    $('mod-info').innerHTML = `<span class="text-danger">❌ Error: ${e}</span>`;
+  }
+}
+
+// ── STEP 3: Analysis ───────────────────────────────────────────────────────
+async function runAnalysis() {
+  resultText = '';
+  rawSourceText = '';
+  rawSourcePath = '';
+  const analysisOut = $('analysis-out');
+  analysisOut.onscroll = refreshScrollLatestButton;
+
+  $('btn-analyze').disabled   = true;
+  $('copy-prompt-btn').disabled  = true;
+  $('save-report-html-revised-btn').disabled = true;
+  $('save-report-html-raw-rendered-btn').disabled = true;
+  $('save-report-raw-source-btn').disabled = true;
+  $('save-report-selected-btn').disabled = true;
+  $('save-report-all-btn').disabled = true;
+  $('scroll-latest-btn').classList.add('hidden');
+  resetAnalysisPartBadge();
+  $('ana-status').textContent = 'Requesting Ford LLM report...';
+  $('ana-progress').textContent = '';
+  renderReportOutput('');
+  updateReportViewButtons();
+  $('prompt-guide').textContent = '';
+  show('analysis-wrap');
+
+  try {
+    const r = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        module_file: modFile,
+        source_c_file: selFile?.path || '',
+        type: 'unified',
+        keyword: selMod,
+        cal_file: reportCalCsvFile || selCalFile,
+        analysis_classification_mode: 'auto',
+        analysis_uds_mode: getSelectedDtcMode(),
+      }),
+    });
+
+    if (!r.ok) {
+      const err = await r.json();
+      showReportError(err.error || 'Error occurred');
+      $('ana-status').textContent = '❌ Error';
+      resetAnalysisPartBadge();
+      return;
+    }
+
+    // Handle streaming response (Server-Sent Events)
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let chunkCount = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      
+      // Keep last incomplete line in buffer
+      buffer = lines[lines.length - 1];
+
+      for (let i = 0; i < lines.length - 1; i++) {
+        const line = lines[i].trim();
+        if (!line || !line.startsWith('data: ')) continue;
+
+        try {
+          const data = JSON.parse(line.substring(6));
+          
+          if (data.error) {
+            showReportError(data.error);
+            $('ana-status').textContent = '❌ Error';
+            resetAnalysisPartBadge();
+            return;
+          }
+
+          if (typeof data.raw_source_chunk === 'string') {
+            rawSourceText += data.raw_source_chunk;
+            if (getSelectedReportOutputs().includes('raw-source') || hasMultipleReportOutputsSelected()) {
+              scheduleReportRender();
+            } else {
+              updateDiffIndicators();
+            }
+            continue;
+          }
+
+          if (data.raw_source_done) {
+            rawSourcePath = String(data.raw_source_path || '');
+            updateDiffIndicators();
+            continue;
+          }
+
+          if (data.status) {
+            $('ana-status').textContent = data.status;
+            updateAnalysisPartBadgeFromStatus(data.status);
+            continue;
+          }
+
+          if (data.done) {
+            $('ana-status').textContent = '✅ Analysis complete';
+            completeAnalysisPartBadge();
+            continue;
+          }
+
+          // Handle chat completion chunks
+          if (data.choices && data.choices.length > 0) {
+            const choice = data.choices[0];
+            if (choice.delta && choice.delta.content) {
+              resultText += choice.delta.content;
+              scheduleReportRender();
+              $('ana-progress').textContent = `${resultText.length.toLocaleString()} chars`;
+              chunkCount++;
+              $('ana-status').textContent = `Receiving response (${chunkCount} chunks)...`;
+            }
+            if (choice.finish_reason === 'stop') {
+              $('ana-status').textContent = '✅ Analysis complete';
+            }
+          }
+        } catch (e) {
+          console.error('Parse error:', e, 'Line:', line);
+          // If we got a JSON parse error, it might be an error response
+          if (line.includes('error') || line.includes('Error')) {
+            console.error('[ERROR] Possible error in response:', line);
+          }
+        }
+      }
+    }
+
+    const trailingLine = buffer.trim();
+    if (trailingLine && trailingLine.startsWith('data: ')) {
+      try {
+        const data = JSON.parse(trailingLine.substring(6));
+        if (data.choices && data.choices.length > 0) {
+          const choice = data.choices[0];
+          if (choice.delta && choice.delta.content) {
+            resultText += choice.delta.content;
+          }
+        }
+      } catch (e) {
+      }
+    }
+
+    if (reportRenderTimer) {
+      clearTimeout(reportRenderTimer);
+      reportRenderTimer = null;
+    }
+    renderReportOutput(resultText);
+
+    if (!resultText) {
+      showReportError('No response from Ford LLM. Configure FordLLM access in this order: 1) Add FordLLM Client ID and Client Secret from API Catalog in Step 0, 2) Keep the base URL on the documented FordLLM API endpoint, 3) Use a manual bearer token only as a fallback for testing.');
+      $('ana-status').textContent = '❌ Error';
+      resetAnalysisPartBadge();
+      return;
+    }
+
+    $('ana-status').textContent = '✅ Analysis complete';
+    completeAnalysisPartBadge();
+    const rawAvailable = !!getRawReportSourceText();
+    $('prompt-guide').textContent = rawAvailable
+      ? '✅ Analysis generated by Ford LLM'
+      : '⚠️ Revised fallback summary generated. Exact raw Ford LLM output was unavailable for this run.';
+    $('copy-prompt-btn').disabled = false;
+    $('save-report-html-revised-btn').disabled = false;
+    $('save-report-html-raw-rendered-btn').disabled = !rawAvailable;
+    $('save-report-raw-source-btn').disabled = !rawAvailable;
+    $('save-report-selected-btn').disabled = false;
+    $('save-report-all-btn').disabled = false;
+    refreshScrollLatestButton();
+
+  } catch (e) {
+    showReportError('Connection failed: ' + e);
+    $('ana-status').textContent = '❌ Error';
+    resetAnalysisPartBadge();
+  } finally {
+    $('btn-analyze').disabled = false;
+  }
+}
+
+function buildReportHtmlDocument(htmlText, mode = 'revised') {
+  const normalizedMode = mode === 'raw-rendered' ? 'raw-rendered' : 'revised';
+  const preparedHtml = normalizedMode === 'raw-rendered'
+    ? getReportBodyForMode('raw-rendered')
+    : getReportBodyForMode('revised');
+  let reportBodyHtml = escapeHtml(preparedHtml).replace(/\n/g, '<br>');
+  const generatedAt = new Date().toLocaleString();
+  const reportEngineVersion = 'ecu-analysis-html-v2026.03.30-a';
+
+  if (normalizedMode !== 'raw-rendered' && looksLikeHtmlFragment(preparedHtml) && window.DOMPurify) {
+    reportBodyHtml = window.DOMPurify.sanitize(preparedHtml, { USE_PROFILES: { html: true } });
+  } else if (normalizedMode === 'raw-rendered' && looksLikeHtmlFragment(preparedHtml)) {
+    reportBodyHtml = preparedHtml;
+  }
+
+  const title = `${selMod || 'MODULE'} ${getReportModeLabel(normalizedMode)} Report`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { background:#f3f6fa; color:#1f2937; font-family:Segoe UI, Arial, sans-serif; margin:0; padding:24px; }
+    .page { max-width:1200px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:18px; }
+    .meta { color:#6b7280; font-size:.84rem; margin-bottom:10px; }
+    .report-content { font-size:.9rem; line-height:1.65; font-family:'Segoe UI',Arial,sans-serif; }
+    .report-container { background:linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%); }
+    .report-section { border:1px solid #dbe3ec; border-radius:10px; background:#fff; padding:14px 16px; margin-bottom:12px; }
+    .section-title, .subsection-title { display:flex; align-items:center; gap:8px; font-weight:700; color:#153a5b; margin-bottom:8px; }
+    .section-title { font-size:1rem; }
+    .subsection-title { font-size:.92rem; }
+    .report-section h3, .report-section h4 { color:#153a5b; font-weight:700; line-height:1.35; margin:14px 0 8px; }
+    .report-section h3 { font-size:.98rem; }
+    .report-section h4 { font-size:.9rem; }
+    .report-section ul { margin:0 0 .95rem; padding-left:1.1rem; }
+    .report-section li { margin-bottom:12px; }
+    .report-section li:last-child { margin-bottom:0; }
+    .report-list { margin:0 0 .95rem; padding-left:1.1rem; }
+    .report-list > li { margin-bottom:12px; }
+    .report-list > li:last-child { margin-bottom:0; }
+    .expr, .meaning, .evidence, .muted, .kv { margin:6px 0; }
+    .expr { background:#f4f7fb; border-left:4px solid #1d5f91; padding:8px 10px; border-radius:6px; font-weight:600; display:block; width:auto; max-width:100%; min-width:0; box-sizing:border-box; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+    .expr code { display:block; width:auto; max-width:100%; box-sizing:border-box; background:transparent; padding:0; color:#0f172a; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
+    .meaning { color:#334155; font-size:.84rem; }
+    .unknown:not(.report-section) { margin:6px 0; padding:6px 10px; border-left:4px solid #d0d7de; border-radius:6px; background:#f8fafc; color:#64748b; font-size:.82rem; white-space:normal; overflow-wrap:anywhere; word-break:break-word; box-sizing:border-box; }
+    .evidence { color:#0f172a; font-size:.82rem; }
+    .kv { color:#334155; font-size:.84rem; }
+    .warn { border-color:#f2cc8f; background:#fff8ea; }
+    .good { border-color:#b7e4c7; background:#f2fbf5; }
+    .unknown { border-color:#d0d7de; background:#f8fafc; }
+    .muted { color:#64748b; }
+    .chip { display:inline-block; padding:2px 8px; border-radius:999px; background:#e8eef5; color:#20405d; font-size:.78rem; margin-right:6px; margin-bottom:4px; }
+    details { margin-top:8px; border:1px solid #dbe3ec; border-radius:8px; padding:8px 10px; background:#f8fafc; }
+    summary { cursor:pointer; font-weight:600; color:#20405d; list-style:none; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <div class="meta">Module: ${escapeHtml(selMod || 'MODULE')}</div>
+      <div class="meta">View: ${escapeHtml(getReportModeLabel(normalizedMode))}</div>
+      <div class="meta">Generated: ${escapeHtml(generatedAt)} &nbsp;|&nbsp; Engine: ${escapeHtml(reportEngineVersion)}</div>
+      <div class="report-content"><div class="report-container">${reportBodyHtml}</div></div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+async function saveAnalysisContent(content, format, keyword) {
+  let payload = null;
+  if (typeof keyword === 'string') {
+    payload = {
+      content,
+      module_file: modFile,
+      type: 'unified',
+      keyword,
+      format,
+    };
+  } else {
+    payload = {
+      content,
+      module_file: modFile,
+      type: 'unified',
+      format,
+      ...(keyword || {}),
+    };
+  }
+
+  const r = await fetch('/api/save-analysis', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const d = await r.json();
+  if (!r.ok || d.error) {
+    throw new Error(d.error || 'Unknown error');
+  }
+  return d;
+}
+
+function tryOpenReportPreview(savedPath) {
+  try {
+    const previewUrl = `/preview-report?path=${encodeURIComponent(savedPath || '')}`;
+    const previewWindow = window.open(previewUrl, '_blank', 'noopener');
+    return !!previewWindow;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getRawSourceSaveContent() {
+  return getExactRawSourceText();
+}
+
+function getAvailableReportOutputs() {
+  const available = [];
+  if (getRevisedReportSourceText()) available.push('revised');
+  if (getRawReportSourceText()) {
+    available.push('raw-rendered');
+    available.push('raw-source');
+  }
+  return available;
+}
+
+function buildReportSaveRequest(mode) {
+  const normalizedMode = normalizeReportOutput(mode);
+  if (normalizedMode === 'raw-source') {
+    if (!getRawSourceSaveContent()) {
+      throw new Error('Raw Source is unavailable for this run.');
+    }
+    return {
+      content: getRawSourceSaveContent(),
+      format: 'txt',
+      keyword: selMod || 'MODULE',
+      artifact_label: 'RAW_SOURCE',
+    };
+  }
+
+  if (normalizedMode === 'raw-rendered' && !getRawReportSourceText()) {
+    throw new Error('Raw Rendered is unavailable because no exact raw model HTML was captured for this run.');
+  }
+
+  return {
+    content: buildReportHtmlDocument(resultText, normalizedMode),
+    format: 'html',
+    keyword: selMod || 'MODULE',
+    artifact_label: normalizedMode === 'raw-rendered' ? 'RAW_RENDERED' : 'REVISED',
+  };
+}
+
+async function saveSingleReport(mode) {
+  const request = buildReportSaveRequest(mode);
+  const saved = await saveAnalysisContent(request.content, request.format, {
+    keyword: request.keyword,
+    artifact_label: request.artifact_label,
+  });
+
+  const shouldPreview = request.format === 'html';
+  const previewOpened = shouldPreview ? tryOpenReportPreview(saved.saved_to) : false;
+  const label = getReportModeLabel(mode);
+  $('ana-status').textContent = previewOpened
+    ? `✅ Saved ${label} and opened preview: ${saved.saved_to}`
+    : `✅ Saved ${label}: ${saved.saved_to}`;
+  return saved;
+}
+
+async function saveMultipleReports(modes, statusLabel) {
+  const normalizedModes = normalizeReportOutputSelection(modes);
+  const availableOutputs = new Set(getAvailableReportOutputs());
+  const saveableModes = normalizedModes.filter(mode => availableOutputs.has(mode));
+  const skippedModes = normalizedModes.filter(mode => !availableOutputs.has(mode));
+
+  if (!saveableModes.length) {
+    throw new Error(`No selected outputs are available to save. Unavailable: ${skippedModes.map(getReportModeLabel).join(', ')}`);
+  }
+
+  $('ana-status').textContent = `${statusLabel}...`;
+
+  const savedPaths = [];
+  for (const mode of saveableModes) {
+    const request = buildReportSaveRequest(mode);
+    const saved = await saveAnalysisContent(request.content, request.format, {
+      keyword: request.keyword,
+      artifact_label: request.artifact_label,
+    });
+    savedPaths.push(saved.saved_to);
+  }
+
+  $('ana-status').textContent = skippedModes.length
+    ? `✅ Saved ${saveableModes.length} output(s): ${savedPaths.join(' | ')} | skipped unavailable: ${skippedModes.map(getReportModeLabel).join(', ')}`
+    : `✅ Saved ${saveableModes.length} report output(s): ${savedPaths.join(' | ')}`;
+}
+
+async function saveReport(target = 'selected') {
+  if (!resultText) {
+    alert('There is no report to save.');
+    return;
+  }
+
+  if (!modFile) {
+    alert('Module file path is missing. Re-select the module and try again.');
+    return;
+  }
+
+  const saveTarget = String(target || 'selected').toLowerCase();
+  const selectedModes = getSelectedReportOutputs();
+
+  try {
+    if (saveTarget === 'selected') {
+      if (selectedModes.length === 1) {
+        $('ana-status').textContent = `Saving ${getReportModeLabel(selectedModes[0])}...`;
+        await saveSingleReport(selectedModes[0]);
+      } else {
+        await saveMultipleReports(selectedModes, 'Saving selected outputs');
+      }
+      return;
+    }
+
+    if (saveTarget === 'all') {
+      await saveMultipleReports(REPORT_OUTPUT_ORDER, 'Saving all outputs');
+      return;
+    }
+
+    if (!REPORT_OUTPUT_ORDER.includes(saveTarget)) {
+      throw new Error(`Unsupported save target: ${saveTarget}`);
+    }
+
+    $('ana-status').textContent = `Saving ${getReportModeLabel(saveTarget)}...`;
+    await saveSingleReport(saveTarget);
+  } catch (e) {
+    $('ana-status').textContent = '❌ Save failed';
+    alert('Save failed: ' + e);
+  }
+}
+
+async function copyPrompt() {
+  const selectedModes = getSelectedReportOutputs();
+  const reportToCopy = selectedModes.length > 1
+    ? selectedModes.map(mode => {
+        if (mode === 'raw-source') {
+          return ['<!-- Raw Source -->', getRawSourceSaveContent()].join('\n');
+        }
+        if (mode === 'raw-rendered') {
+          return ['<!-- Raw Rendered -->', getReportBodyForMode('raw-rendered')].join('\n');
+        }
+        return ['<!-- Revised Report -->', getReportBodyForMode('revised')].join('\n');
+      }).join('\n\n')
+    : (getPrimarySelectedReportOutput() === 'raw-source'
+        ? getRawSourceSaveContent()
+        : getSelectedReportBody(getPrimarySelectedReportOutput()));
+  if (!reportToCopy) { alert('There is no prompt to copy.'); return; }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(reportToCopy);
+    } else {
+      // Fallback for non-secure contexts (HTTP on remote IP)
+      const ta = document.createElement('textarea');
+      ta.value = reportToCopy;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    $('ana-status').textContent = '✅ Prompt copied';
+  } catch (e) {
+    alert('Copy failed: ' + e);
+  }
+}
+
+// ── Calibration Data ───────────────────────────────────────────────────────
+async function doScanCal(options = {}) {
+  const { restoreFromCache = false } = options;
+  if (!selFile) return;
+  const btn = $('scan-cal-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
+  try {
+    const r = await fetch('/api/scan-cal-files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filepath: selFile.path }),
+    });
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    renderCalFiles(d.files);
+    if (restoreFromCache && pendingUiRestore?.selectedCalPath) {
+      const calIndex = d.files.findIndex(file => file.path === pendingUiRestore.selectedCalPath);
+      if (calIndex >= 0) {
+        const selectedCal = d.files[calIndex];
+        if (!pendingUiRestore.selectedCalSignature || pendingUiRestore.selectedCalSignature === buildCalFileSignature(selectedCal)) {
+          await selectCalFile(calIndex, { restoreFromCache: true, skipScroll: true });
+        }
+      }
+    }
+    if (restoreFromCache) {
+      tryRestoreCachedDtcResult();
+    }
+  } catch (e) {
+    alert('Cal scan failed: ' + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔄 Refresh Same-Directory Files';
+  }
+}
+
+function renderCalFiles(files) {
+  calFilesArr = files;
+  const area  = $('cal-file-area');
+  if (!files.length) {
+    area.innerHTML = '<div class="text-muted text-center py-2">No CSV/TXT files found</div>';
+    return;
+  }
+  area.innerHTML = files.map((f, i) =>
+    `<div class="file-row" id="cfr-${i}" onclick="selectCalFile(${i})">
+       <span>📊 <strong>${f.name}</strong>
+         <span class="text-muted ms-2 small">${f.rel} &nbsp;(${f.size_kb} KB)</span>
+       </span>
+       <span class="badge bg-success">Select</span>
+     </div>`
+  ).join('');
+}
+
+async function selectCalFile(idx, options = {}) {
+  const { restoreFromCache = false, skipScroll = false } = options;
+  document.querySelectorAll('[id^="cfr-"]').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('[id^="cfr-"] .badge').forEach(badge => {
+    badge.textContent = 'Select';
+    badge.classList.remove('bg-primary');
+    badge.classList.add('bg-success');
+  });
+  $(`cfr-${idx}`)?.classList.add('active');
+  selCalFile = calFilesArr[idx].path;
+  const selectedBadge = $(`cfr-${idx}`).querySelector('.badge');
+  selectedBadge.textContent = 'Selected ✓';
+  selectedBadge.classList.remove('bg-success');
+  selectedBadge.classList.add('bg-primary');
+  $('cal-selected-info').innerHTML =
+    `✅ Selected: <code>${calFilesArr[idx].name}</code>`;
+  $('cal-selected-path').classList.remove('hidden');
+  $('cal-selected-path').innerHTML =
+    `<div><strong>Reading source CSV:</strong></div><div class="path-box mt-1">${selCalFile}</div>`;
+  if (selMod && modFile) {
+    show('cal-mod-status');
+    runCalSearch(selMod, modFile, getSelectedDtcMode());
+  }
+  let restoredCachedDtc = false;
+  if (restoreFromCache) {
+    restoredCachedDtc = tryRestoreCachedDtcResult();
+  }
+  if (!restoreFromCache || !restoredCachedDtc) {
+    saveUiState();
+  }
+  // Show module card after cal file is chosen
+  show('card2');
+  if (!skipScroll) {
+    $('card2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+async function processAllModules() {
+  if (!selFile || !allMods.length || isBulkProcessing) return;
+
+  const btn = $('btn-select-all');
+  const status = $('bulk-status');
+  isBulkProcessing = true;
+  btn.disabled = true;
+  $('btn-dtc').disabled = true;
+  show('bulk-status');
+
+  let extractedCount = 0;
+  let csvSavedCount = 0;
+  let failedCount = 0;
+
+  try {
+    for (let i = 0; i < allMods.length; i++) {
+      const moduleName = allMods[i];
+      status.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Processing ${i + 1}/${allMods.length}: <strong>${moduleName}</strong>`;
+
+      const moduleResp = await fetch('/api/extract-module', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filepath: selFile.path, keyword: moduleName }),
+      });
+      const moduleData = await moduleResp.json();
+
+      if (!moduleResp.ok || moduleData.error) {
+        failedCount += 1;
+        continue;
+      }
+
+      extractedCount += 1;
+
+      if (selCalFile) {
+        const calResp = await fetch('/api/search-cal-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            module_file: moduleData.output_file,
+            cal_file: selCalFile,
+            module_name: moduleName,
+              uds_mode: getSelectedDtcMode(),
+          }),
+        });
+        const calData = await calResp.json();
+        if (calResp.ok && !calData.error && calData.saved_to) {
+          csvSavedCount += 1;
+        } else if (!calResp.ok || calData.error) {
+          failedCount += 1;
+        }
+      }
+    }
+
+    status.innerHTML =
+      `✅ Bulk processing complete — extracted <strong>${extractedCount}</strong> module(s)` +
+      `${selCalFile ? `, prepared <strong>${csvSavedCount}</strong> module CSV file(s)` : ''}` +
+      `${failedCount ? `, failed <strong>${failedCount}</strong>` : ''}.`;
+  } catch (e) {
+    status.innerHTML = `❌ Bulk processing failed: ${e}`;
+  } finally {
+    isBulkProcessing = false;
+    btn.disabled = false;
+    $('btn-dtc').disabled = false;
+  }
+}
+
+// Recognize the '<X=[..]; Y=[..](; Z=[[..]; [..]])>' cal table encoding and split it back into arrays.
+function parseCalTableValue(raw) {
+  if (typeof raw !== 'string') return null;
+  const m = raw.match(/^X=\[([^\]]*)\];\s*Y=\[([^\]]*)\](?:;\s*Z=\[(.*)\])?$/s);
+  if (!m) return null;
+  const splitNums = s => s.split(',').map(v => v.trim()).filter(v => v !== '');
+  const x = splitNums(m[1]);
+  const y = splitNums(m[2]);
+  if (!x.length && !y.length) return null;
+  if (m[3] === undefined) return { dims: 1, x, y };
+  const body = m[3].replace(/^\[/, '').replace(/\]$/, '');
+  const z = body.split(/\]\s*;\s*\[/).map(splitNums);
+  return { dims: 2, x, y, z };
+}
+
+// Render a cal parameter value: plain text for scalars, a compact HTML table for 1D/2D cal tables.
+function renderCalValueCell(rawValue) {
+  const table = parseCalTableValue(rawValue);
+  if (!table) {
+    return `<span class="cal-value-cell">${rawValue}</span>`;
+  }
+  if (table.dims === 1) {
+    const xCells = table.x.map(v => `<td>${v}</td>`).join('');
+    const yCells = table.y.map(v => `<td>${v}</td>`).join('');
+    return `<div class="cal-table-wrap"><table class="table table-sm cal-mini-table">` +
+      `<tr><th>X</th>${xCells}</tr>` +
+      `<tr><th>Y</th>${yCells}</tr>` +
+      `</table></div>`;
+  }
+  const headerCells = table.x.map(v => `<th>${v}</th>`).join('');
+  const bodyRows = table.z.map((row, i) => {
+    const yLabel = table.y[i] !== undefined ? table.y[i] : '';
+    const cells = row.map(v => `<td>${v}</td>`).join('');
+    return `<tr><th>${yLabel}</th>${cells}</tr>`;
+  }).join('');
+  return `<div class="cal-table-wrap"><table class="table table-sm cal-mini-table">` +
+    `<tr><th>Y \ X</th>${headerCells}</tr>` +
+    `${bodyRows}` +
+    `</table></div>`;
+}
+
+function skipCal() {
+  selCalFile = null;
+  reportCalCsvFile = '';
+  $('cal-selected-info').innerHTML = '<span class="text-muted">⏭ Skipped — no calibration data selected</span>';
+  $('cal-selected-path').classList.add('hidden');
+  $('cal-selected-path').innerHTML = '';
+  // De-select any highlighted file row
+  document.querySelectorAll('[id^="cfr-"]').forEach(el => el.classList.remove('active'));
+  // Show module card
+  show('card2');
+  $('card2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function runCalSearch(modName, modFilePath, isUds) {
+  reportCalCsvFile = '';
+  $('btn-analyze').disabled = true;
+  show('card-cal-result');
+  $('cal-result-title').textContent = `Cal Data Search: ${modName}`;
+  setModeBadge('cal-mode-badge', getSelectedDtcModeLabel());
+  $('cal-result-elapsed').textContent = '';
+  $('cal-log').textContent = '🔍 Searching...';
+  $('cal-result-table').innerHTML = '';
+  $('cal-source-meta').classList.add('hidden');
+  $('cal-source-meta').innerHTML = '';
+  try {
+    const r = await fetch('/api/search-cal-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        module_file: modFilePath,
+        cal_file:    selCalFile,
+        module_name: modName,
+        uds_mode:    isUds,
+      }),
+    });
+    const d = await r.json();
+    if (d.error) {
+      $('cal-log').textContent = '❌ ' + d.error;
+      return;
+    }
+    modDtcCodes = d.dtc_codes || [];
+    reportCalCsvFile = d.saved_to || '';
+    setModeBadge('cal-mode-badge', d.uds_mode_label || getSelectedDtcModeLabel());
+    $('cal-result-elapsed').textContent = `⏱ ${d.elapsed}s`;
+    $('cal-log').textContent = d.log.join('\n');
+    const dtcSwInfo = d.dtc_count ? ` &nbsp;🔴 CSV DTC ${d.dtc_count}` : '';
+    $('cal-result-title').innerHTML = d.used_prepared_result
+      ? `Cal Data Search: ${modName} &nbsp;—&nbsp; Showing ${d.count} matched rows${dtcSwInfo}`
+      : `Cal Data Search: ${modName} &nbsp;—&nbsp; ${d.count} / ${d.total_cal_params} matched${dtcSwInfo}`;
+    const sourceMeta = $('cal-source-meta');
+    sourceMeta.classList.remove('hidden');
+    sourceMeta.innerHTML =
+      (d.source_warning
+        ? `<div class="alert alert-info py-2 small mb-2">ℹ️ ${d.source_warning}</div>`
+        : '') +
+      (d.used_prepared_result
+        ? `<div class="alert alert-success py-2 small mb-2">✅ DTC list is extracted directly from the selected generated CSV file.</div>`
+        : '') +
+      `<div class="row g-2 small">` +
+      `<div class="col-12">` +
+      `<div class="fw-semibold">Reading source CSV</div>` +
+      `<div class="path-box mt-1">${d.source_cal_file || selCalFile || '-'}</div>` +
+      `</div>` +
+      `<div class="col-12">` +
+      `<div class="fw-semibold">DTC extraction file</div>` +
+      `<div class="path-box mt-1">${d.dtc_source_file || d.source_cal_file || '-'}</div>` +
+      `</div>` +
+      (d.dtc_reference_file
+        ? `<div class="col-12">` +
+          `<div class="fw-semibold">DTC description reference</div>` +
+          `<div class="path-box mt-1">${d.dtc_reference_file}</div>` +
+          `<div class="text-muted small mt-1">${d.dtc_reference_label || ''}</div>` +
+          `</div>`
+        : '') +
+      `<div class="col-12">` +
+      `<div class="fw-semibold">Saved module CSV</div>` +
+      `<div class="path-box mt-1">${d.saved_to || '-'}</div>` +
+      `<div class="text-muted small mt-1">CSV status: <strong>${csvActionLabel(d.csv_save_action)}</strong></div>` +
+      `</div>` +
+      `</div>`;
+    // Update the inline calibration status.
+    const calStatus = $('cal-mod-status');
+    if (d.count) {
+      calStatus.innerHTML = d.used_prepared_result
+        ? `✅ Generated CSV loaded — <strong>${d.count}</strong> matched rows shown ` +
+          (d.dtc_count ? `| CSV DTC <span class="badge bg-danger">${d.dtc_count}</span> ` : '') +
+          (d.saved_to ? `| ${csvActionLabel(d.csv_save_action)} <code>${d.saved_to.split(/[\\/]/).pop()}</code> ` : '') +
+          `<a href="#" onclick="$('card-cal-result').scrollIntoView({behavior:'smooth',block:'start'}); return false;">View results</a>`
+        : `✅ Calibration search complete — <strong>${d.count}/${d.total_cal_params}</strong> matched ` +
+          (d.dtc_count ? `| CSV DTC <span class="badge bg-danger">${d.dtc_count}</span> ` : '') +
+          (d.saved_to ? `| ${csvActionLabel(d.csv_save_action)} <code>${d.saved_to.split(/[\\/]/).pop()}</code> ` : '') +
+          `<a href="#" onclick="$('card-cal-result').scrollIntoView({behavior:'smooth',block:'start'}); return false;">View results</a>`;
+    } else {
+      calStatus.innerHTML =
+        `⚠️ Calibration search complete — no matching parameters were found in the module`;
+    }
+    if (!d.count) {
+      $('cal-result-table').innerHTML =
+        '<div class="text-muted small">No matching cal parameters found in module.</div>';
+      return;
+    }
+    const dtcItems = d.found.filter(item => item.category === 'DTC_SW');
+    const otherItems = d.found.filter(item => item.category !== 'DTC_SW');
+    let dtcSummaryHtml = '';
+    let otherItemsHtml = '';
+
+    if (dtcItems.length) {
+      const grouped = new Map();
+      dtcItems.forEach(item => {
+        const key = item.dtc || item.name;
+        if (!grouped.has(key)) {
+          grouped.set(key, { dtc: item.dtc || item.name, description: item.dtc_description || '', swRows: [] });
+        }
+        const row = grouped.get(key);
+        if (!row.description && item.dtc_description) row.description = item.dtc_description;
+        // Non-breaking space around "=" so short values never wrap onto a second line.
+        row.swRows.push(`<div class="text-nowrap"><code>${item.name}</code>&nbsp;=&nbsp;${renderCalValueCell(item.value)}</div>`);
+      });
+
+      const dtcRows = Array.from(grouped.values()).map(row => {
+        return `<tr>
+          <td>
+            <span class="badge bg-danger me-1">${row.dtc}</span>
+            ${row.description ? `<div class="text-muted small mt-1">${row.description}</div>` : ''}
+          </td>
+          <td>${row.swRows.join('')}</td>
+        </tr>`;
+      }).join('');
+
+      dtcSummaryHtml =
+        `<div style="max-height:280px;overflow-y:auto">` +
+        `<table class="table table-sm table-hover mb-0">` +
+        `<thead class="table-light"><tr><th>DTC</th><th>SW</th></tr></thead>` +
+        `<tbody>${dtcRows}</tbody></table></div>`;
+    }
+
+    if (otherItems.length) {
+      const otherRows = otherItems.map(item =>
+        `<tr>` +
+        `<td><code>${item.name}</code></td>` +
+        `<td class="text-muted">${renderCalValueCell(item.value)}</td>` +
+        `<td class="text-muted">${item.default || '-'}</td>` +
+        `<td class="text-muted">${item.unit || '-'}</td>` +
+        `<td class="text-muted">${item.description || '-'}</td>` +
+        `</tr>`
+      ).join('');
+      otherItemsHtml =
+        `<div class="mt-3">` +
+        `<div class="fw-semibold small mb-2">Other matched parameters</div>` +
+        `<div style="max-height:350px;overflow-y:auto">` +
+        `<table class="table table-sm table-hover mb-0">` +
+        `<thead class="table-light"><tr><th>Parameter</th><th>Value</th><th>Default</th><th>Unit</th><th>Description</th></tr></thead>` +
+        `<tbody>${otherRows}</tbody></table></div></div>`;
+    }
+
+    $('cal-result-table').innerHTML = dtcSummaryHtml || otherItemsHtml ||
+      '<div class="text-muted small">No matching cal parameters found in module.</div>';
+    if (dtcSummaryHtml && otherItemsHtml) {
+      $('cal-result-table').innerHTML = dtcSummaryHtml + otherItemsHtml;
+    }
+  } catch (e) {
+    $('cal-log').textContent = '❌ Error: ' + e;
+    const calStatus = $('cal-mod-status');
+    if (calStatus) calStatus.innerHTML = `❌ Calibration search error: ${e}`;
+  } finally {
+    $('btn-analyze').disabled = false;
+  }
+}
+
+function scrollToCalCard() {
+  $('card-cal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Auto-scan on page load
+applyDtcMode(loadStoredDtcMode());
+$('dtc-mode-select')?.addEventListener('change', () => {
+  const mode = getSelectedDtcMode();
+  applyDtcMode(mode);
+  saveDtcMode(mode);
+  saveUiState();
+  setModeBadge('dtc-mode-badge', getSelectedDtcModeLabel());
+  setModeBadge('cal-mode-badge', getSelectedDtcModeLabel());
+});
+loadFordLlmSettings();
+doScan();
+</script>
+</body>
+</html>
