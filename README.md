@@ -9,6 +9,7 @@ DTC diagnostic descriptions — without uploading your C-BOOK folder anywhere.
 - [Quick Start](#quick-start)
 - [Workflow](#workflow)
 - [Project Structure](#project-structure)
+- [Utility Scripts](#utility-scripts)
 - [Configuration](#configuration)
 - [LLM Provider Setup](#llm-provider-setup)
 - [Analysis Types](#analysis-types)
@@ -52,11 +53,29 @@ SW_CODE/
 ├── dtc_description_fallbacks.json   # Curated DTC description fallback dictionary
 ├── requirements.txt
 ├── config.template.json       # Copy to config.json and fill in secrets locally
+├── C-BOOK-READ.py             # Standalone: extract feature names from a C file
+├── C-MODULE-DESC.py           # Standalone: summarize an extracted module .txt
+├── _analyze_module_graph.py   # Module call-graph (nodes/edges) from a full C source
+├── audit_prompt_classification_index.py  # Audit diagnostic vs. control module classification
+├── clean_egomn_html.py        # Trim boilerplate from a saved EGOMN_DESCRIPTION.html
 └── C-BOOK/                    # ECU source/calibration data (git-ignored, not in repo)
 ```
 
 > `C-BOOK/`, `C-BOOK_tmp/`, `A2L_anlaysis/`, `OBD_Design_Transmittals_PCM/`, and
 > `config.json` are all git-ignored — this repo only tracks the application code.
+
+## Utility Scripts
+
+Command-line helpers that work without the Flask app. Several have hard-coded
+paths near the top of the file — edit them for your own C-BOOK folder.
+
+| Script | Purpose |
+|---|---|
+| `C-BOOK-READ.py` | Read the "Features INcluded in" block of a C file and list feature names (e.g. `A_HLD`) |
+| `C-MODULE-DESC.py` | Parse an extracted module `.txt` (split by `FOOTER` lines) into a structured summary |
+| `_analyze_module_graph.py` | Build a module-to-module call graph from `<STRATEGY>.c`; writes nodes/edges CSV and JSON |
+| `audit_prompt_classification_index.py` | Score modules for diagnostic vs. control content; writes `Result-MD/module_classification_audit.{json,md}` |
+| `clean_egomn_html.py` | Remove repeated boilerplate from a saved `EGOMN_DESCRIPTION.html` (in place) |
 
 ## Configuration
 
